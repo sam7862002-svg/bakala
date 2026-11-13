@@ -118,36 +118,6 @@
       background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 9px;
       margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center;
     }
-
-    #printableReceiptArea {
-      position: absolute; left: -9999px; top: 0; width: 58mm;
-      background: #ffffff; color: #000000; padding: 4px; font-family: monospace, sans-serif;
-    }
-    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 6px; margin-bottom: 6px; }
-    .rcpt-header h2 { font-size: 14px; margin-bottom: 2px; }
-    .rcpt-header p { font-size: 10px; margin: 1px 0; }
-    .rcpt-meta { font-size: 10px; margin-bottom: 6px; border-bottom: 1px dashed #000; padding-bottom: 5px; }
-    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 6px; }
-    .rcpt-table th { border-bottom: 1px solid #000; padding: 3px 1px; text-align: left; }
-    .rcpt-table td { padding: 3px 1px; }
-    .rcpt-totals { border-top: 1px dashed #000; padding-top: 5px; font-size: 11px; margin-bottom: 6px; }
-    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-    .rcpt-tot-row.grand { font-size: 13px; font-weight: bold; border-top: 1px solid #000; padding-top: 3px; margin-top: 3px; }
-    .rcpt-qr { text-align: center; margin-top: 6px; }
-
-    @media print {
-      @page { size: 58mm auto; margin: 0mm; }
-      body * { visibility: hidden; }
-      body { background: #fff !important; padding: 0 !important; margin: 0 !important; }
-      #printableReceiptArea, #printableReceiptArea * { visibility: visible; }
-      #printableReceiptArea {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 54mm !important;
-        padding: 2mm !important;
-      }
-    }
   </style>
 </head>
 <body>
@@ -168,7 +138,7 @@
       <button type="button" class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sale</button>
       <button type="button" class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
       <button type="button" class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock</button>
-      <button type="button" class="mode-btn" onclick="openServerConfigModal()">☁️ Setup</button>
+      <button type="button" class="mode-btn" onclick="testSunmiJsPrint()">🖨️ Test</button>
     </div>
 
     <div class="submode-bar" id="submodeBar">
@@ -276,9 +246,11 @@
   <!-- Settings Modal -->
   <div class="modal-overlay" id="serverModal">
     <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:10px; font-size:15px;">⚙️ SUNMI Terminal & Cloud Config</h3>
+      <h3 style="color:#38bdf8; margin-bottom:10px; font-size:15px;">⚙️ SUNMI Terminal & Plugin Port</h3>
       <label style="font-size:11px; color:#94a3b8;">Terminal ID (e.g. S1):</label>
       <input type="text" id="cfgTerminalId" class="form-input" style="margin-bottom:8px;">
+      <label style="font-size:11px; color:#94a3b8;">Sunmi Print Plugin Port (Default 8080):</label>
+      <input type="text" id="cfgPluginPort" class="form-input" style="margin-bottom:8px;" placeholder="8080">
       <label style="font-size:11px; color:#94a3b8;">Supabase URL:</label>
       <input type="text" id="cfgSbUrl" class="form-input" style="margin-bottom:8px;">
       <label style="font-size:11px; color:#94a3b8;">Supabase Key:</label>
@@ -286,33 +258,6 @@
       <button type="button" class="btn-primary" onclick="saveServerConfig()">💾 Save</button>
       <button type="button" class="btn-icon" style="width:100%; margin-top:6px;" onclick="document.getElementById('serverModal').style.display='none'">Close</button>
     </div>
-  </div>
-
-  <!-- 58mm Thermal Receipt Area -->
-  <div id="printableReceiptArea">
-    <div class="rcpt-header">
-      <h2 id="rStoreName">STORE NAME</h2>
-      <p id="rStoreNameAr">اسم المتجر</p>
-      <p>VAT: <span id="rStoreVat">300000000000003</span></p>
-      <p style="font-weight:bold; margin-top:2px;" id="rInvTitle">SIMPLIFIED TAX INVOICE</p>
-    </div>
-    <div class="rcpt-meta">
-      <div>Inv No: <b id="rInvNo">S1-0001</b></div>
-      <div>Date: <span id="rInvDate">2026-11-14</span></div>
-      <div>Party: <span id="rCustName">WALK-IN CUSTOMER</span></div>
-    </div>
-    <table class="rcpt-table">
-      <thead><tr><th>Item</th><th>Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr></thead>
-      <tbody id="rItemsBody"></tbody>
-    </table>
-    <div class="rcpt-totals">
-      <div class="rcpt-tot-row"><span>Subtotal:</span><span id="rSubtotal">0.00</span></div>
-      <div class="rcpt-tot-row"><span>VAT 15%:</span><span id="rVat">0.00</span></div>
-      <div class="rcpt-tot-row grand"><span>TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
-      <div class="rcpt-tot-row"><span>Mode:</span><span id="rPayMethod">CASH</span></div>
-    </div>
-    <div class="rcpt-qr"><div id="rQrCanvas" style="display:inline-block;"></div></div>
-    <div style="text-align:center; font-size:9px; margin-top:4px;">Thank You / شكراً لزيارتكم</div>
   </div>
 
   <script>
@@ -339,7 +284,8 @@
       return {
         sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
         sbKey: DEFAULT_SB_KEY,
-        terminalId: localStorage.getItem('sunmi_terminal_id') || 'S1'
+        terminalId: localStorage.getItem('sunmi_terminal_id') || 'S1',
+        pluginPort: localStorage.getItem('sunmi_plugin_port') || '8080'
       };
     }
 
@@ -372,7 +318,7 @@
       t.style.background = isErr ? '#ef4444' : '#10b981';
       t.innerText = msg;
       t.style.display = 'block';
-      setTimeout(function() { t.style.display = 'none'; }, 1500);
+      setTimeout(function() { t.style.display = 'none'; }, 1600);
     }
 
     function fetchAllProducts() {
@@ -677,6 +623,118 @@
       });
     }
 
+    // DIRECT ESC/POS & SUNMI PRINT PLUGIN FOR JS DISPATCHER
+    function sendToSunmiPrintPlugin(inv) {
+      var cfg = getCloudConfig();
+      var storeName = (storeSettings.company_name_en || 'RETAIL STORE').toUpperCase();
+      var vatNo = storeSettings.vat_number || '300000000000003';
+      var line = '--------------------------------\n';
+
+      // Build clean 58mm Receipt Text + ESC/POS Commands
+      var receiptText = '';
+      receiptText += '\x1B\x40'; // Init printer
+      receiptText += '\x1B\x61\x01'; // Center align
+      receiptText += '\x1B\x21\x10' + storeName + '\n';
+      receiptText += '\x1B\x21\x00VAT: ' + vatNo + '\n';
+      receiptText += (inv.is_return ? 'CREDIT NOTE\n' : 'SIMPLIFIED TAX INVOICE\n');
+      receiptText += line;
+      receiptText += '\x1B\x61\x00'; // Left align
+      receiptText += 'Inv No : ' + inv.invoice_no + '\n';
+      receiptText += 'Date   : ' + inv.invoice_date + ' ' + (inv.invoice_time || '') + '\n';
+      receiptText += 'Party  : ' + (inv.customer_name || 'WALK-IN') + '\n';
+      receiptText += line;
+      receiptText += 'Item              Qty   Total\n';
+      receiptText += line;
+
+      (inv.items || []).forEach(function(it) {
+        var nm = (it.name_en || 'ITEM').slice(0, 16);
+        while (nm.length < 17) nm += ' ';
+        var qt = String(it.quantity);
+        while (qt.length < 5) qt += ' ';
+        var tot = Number(it.line_total).toFixed(2);
+        receiptText += nm + qt + tot + '\n';
+      });
+
+      receiptText += line;
+      receiptText += 'Subtotal (Excl VAT): ' + Number(inv.subtotal).toFixed(2) + '\n';
+      receiptText += 'VAT (15%)          : ' + Number(inv.vat_amount).toFixed(2) + '\n';
+      receiptText += '\x1B\x21\x10TOTAL : ' + Number(inv.total_amount).toFixed(2) + ' SAR\n';
+      receiptText += '\x1B\x21\x00Mode  : ' + inv.payment_method + '\n';
+      receiptText += line;
+      receiptText += '\x1B\x61\x01Thank You For Shopping!\n\n\n\n';
+
+      // Method 1: Native JS interface injected by Sunmi WebView / Plugin
+      if (window.sunmiPrinter && typeof window.sunmiPrinter.printText === 'function') {
+        window.sunmiPrinter.printText(receiptText);
+        if (inv.zatca_qr && window.sunmiPrinter.printQRCode) {
+          window.sunmiPrinter.printQRCode(inv.zatca_qr, 6, 1);
+          window.sunmiPrinter.lineWrap(3);
+        }
+        showToastMsg('🖨️ Printed on SUNMI!');
+        return;
+      }
+
+      // Method 2: Sunmi Print Plugin for JS Local HTTP Server (127.0.0.1:8080 or 8000)
+      var endpoints = [
+        'http://127.0.0.1:' + cfg.pluginPort + '/print',
+        'http://127.0.0.1:' + cfg.pluginPort + '/api/print',
+        'http://127.0.0.1:8000/print'
+      ];
+
+      var payload = {
+        text: receiptText,
+        qr: inv.zatca_qr || '',
+        align: 1,
+        width: 58
+      };
+
+      fetch(endpoints[0], {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      }).then(function() {
+        showToastMsg('🖨️ Printed via Sunmi Plugin!');
+      }).catch(function() {
+        // Try secondary port 8000 or WebSocket
+        fetch(endpoints[2], {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(function() {
+          showToastMsg('🖨️ Printed via Sunmi Plugin!');
+        }).catch(function() {
+          try {
+            var ws = new WebSocket('ws://127.0.0.1:' + cfg.pluginPort);
+            ws.onopen = function() {
+              ws.send(JSON.stringify(payload));
+              showToastMsg('🖨️ Printed via Sunmi WS!');
+              setTimeout(function() { ws.close(); }, 500);
+            };
+            ws.onerror = function() {
+              alert('Sunmi Print Plugin തുറന്ന് Start ആക്കുക! (App Store -> Sunmi Print plugin for -> Open)');
+            };
+          } catch (e) {
+            alert('Sunmi Print Plugin തുറന്ന് Start ആക്കുക!');
+          }
+        });
+      });
+    }
+
+    function testSunmiJsPrint() {
+      sendToSunmiPrintPlugin({
+        invoice_no: 'TEST-001',
+        invoice_date: new Date().toISOString().slice(0, 10),
+        invoice_time: new Date().toTimeString().slice(0, 8),
+        customer_name: 'TEST CUSTOMER',
+        subtotal: 10.00,
+        vat_amount: 1.50,
+        total_amount: 11.50,
+        payment_method: 'CASH',
+        zatca_qr: 'TEST_ZATCA_QR_CODE',
+        items: [{ name_en: 'TEST ITEM', quantity: 1, line_total: 11.50 }]
+      });
+    }
+
     function executeCheckout(action) {
       if (isSaving || !cart.length) return;
       if (selectedPayMethod === 'CREDIT' && !activeParty) {
@@ -738,7 +796,7 @@
         }).then(function() {
           invRecord.items = itemsRecords;
           if (action === 'sunmi') {
-            printViaSunmiPlugin(invRecord);
+            sendToSunmiPrintPlugin(invRecord);
           } else {
             showToastMsg('✅ Saved: ' + invoiceNo);
           }
@@ -826,34 +884,6 @@
       }).catch(function(e) { alert('Stock Error: ' + e.message); });
     }
 
-    function printViaSunmiPlugin(inv) {
-      document.getElementById('rStoreName').innerText = storeSettings.company_name_en || 'RETAIL STORE';
-      document.getElementById('rStoreNameAr').innerText = storeSettings.company_name_ar || 'اسم المتجر';
-      document.getElementById('rStoreVat').innerText = storeSettings.vat_number || '300000000000003';
-      document.getElementById('rInvTitle').innerText = inv.is_return ? 'CREDIT NOTE / إشعار دائن' : 'SIMPLIFIED TAX INVOICE';
-      document.getElementById('rInvNo').innerText = inv.invoice_no;
-      document.getElementById('rInvDate').innerText = inv.invoice_date + ' ' + (inv.invoice_time || '');
-      document.getElementById('rCustName').innerText = inv.customer_name || 'WALK-IN';
-
-      var tbody = document.getElementById('rItemsBody');
-      tbody.innerHTML = '';
-      (inv.items || []).forEach(function(it) {
-        tbody.innerHTML += '<tr><td>' + it.name_en + '</td><td>' + it.quantity + '</td><td style="text-align:right;">' + Number(it.selling_price).toFixed(2) + '</td><td style="text-align:right;">' + Number(it.line_total).toFixed(2) + '</td></tr>';
-      });
-
-      document.getElementById('rSubtotal').innerText = Number(inv.subtotal).toFixed(2);
-      document.getElementById('rVat').innerText = Number(inv.vat_amount).toFixed(2);
-      document.getElementById('rNetTotal').innerText = Number(inv.total_amount).toFixed(2) + ' SAR';
-      document.getElementById('rPayMethod').innerText = inv.payment_method;
-
-      var qrBox = document.getElementById('rQrCanvas');
-      qrBox.innerHTML = '';
-      if (inv.zatca_qr && window.QRCode) {
-        new QRCode(qrBox, { text: inv.zatca_qr, width: 110, height: 110, correctLevel: QRCode.CorrectLevel.M });
-      }
-      setTimeout(function() { window.print(); }, 250);
-    }
-
     function openRecentBillsModal() {
       document.getElementById('recentBillsModal').style.display = 'flex';
       var listEl = document.getElementById('recentBillsList');
@@ -879,7 +909,7 @@
           var inv = res[0][0];
           inv.items = res[1] || [];
           document.getElementById('recentBillsModal').style.display = 'none';
-          printViaSunmiPlugin(inv);
+          sendToSunmiPrintPlugin(inv);
         }
       });
     }
@@ -887,6 +917,7 @@
     function openServerConfigModal() {
       var cfg = getCloudConfig();
       document.getElementById('cfgTerminalId').value = cfg.terminalId;
+      document.getElementById('cfgPluginPort').value = cfg.pluginPort;
       document.getElementById('cfgSbUrl').value = cfg.sbUrl;
       document.getElementById('cfgSbKey').value = cfg.sbKey;
       document.getElementById('serverModal').style.display = 'flex';
@@ -894,6 +925,7 @@
 
     function saveServerConfig() {
       localStorage.setItem('sunmi_terminal_id', document.getElementById('cfgTerminalId').value.trim() || 'S1');
+      localStorage.setItem('sunmi_plugin_port', document.getElementById('cfgPluginPort').value.trim() || '8080');
       localStorage.setItem('sampos_sb_url', document.getElementById('cfgSbUrl').value.trim());
       localStorage.setItem('sampos_sb_key', document.getElementById('cfgSbKey').value.trim());
       document.getElementById('serverModal').style.display = 'none';
