@@ -1,1422 +1,1058 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#0f172a">
-  <meta name="mobile-web-app-capable" content="yes">
-  <title>SAMPOS Mobile Floor Assistant</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>SAMPOS Cloud Mobile</title>
+  <meta name="theme-color" content="#0f172a" />
+  <!-- Supabase JS v2 & HTML5 QR/Barcode Scanner -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
+    :root {
+      --bg: #0b1120;
+      --card: #131c31;
+      --card2: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0f172a; color: #f8fafc; padding: 10px; padding-bottom: 90px; }
-    .container { max-width: 640px; margin: 0 auto; }
+    body { background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 80px; }
     
-    .top-bar {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px; background: #1e293b; padding: 8px 12px;
-      border-radius: 10px; border: 1px solid #334155;
+    /* Login / PIN Screen */
+    #loginScreen {
+      position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
     }
-    .top-bar h2 { font-size: 14.5px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
-    .top-btns { display: flex; gap: 5px; align-items: center; }
-    .btn-icon { background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 9px; border-radius: 6px; font-size: 11.5px; font-weight: bold; cursor: pointer; text-decoration: none; }
-    .btn-icon:hover { background: #475569; }
-    .btn-recent { background: #8b5cf6; border-color: #a78bfa; color: #fff; }
+    .pin-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 28px 22px; width: 100%; max-width: 380px; text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .pin-dots { display: flex; justify-content: center; gap: 12px; margin: 20px 0; }
+    .pin-dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--primary); transition: 0.2s; }
+    .pin-dot.filled { background: var(--primary); transform: scale(1.15); }
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+    .key-btn {
+      background: var(--card2); border: 1px solid var(--border); color: var(--text);
+      font-size: 22px; font-weight: 600; padding: 16px; border-radius: 14px; cursor: pointer;
+    }
+    .key-btn:active { background: var(--primary); }
 
-    .mode-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+    /* Header */
+    header {
+      background: var(--card); border-bottom: 1px solid var(--border);
+      padding: 12px 16px; position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .shop-badge { display: flex; flex-direction: column; }
+    .shop-title { font-size: 15px; font-weight: 700; color: #fff; }
+    .shop-sub { font-size: 11px; color: var(--success); display: flex; align-items: center; gap: 5px; }
+    .hdr-actions { display: flex; gap: 8px; }
+    .btn-sm {
+      background: var(--card2); border: 1px solid var(--border); color: var(--text);
+      padding: 6px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+
+    /* Container & Cards */
+    .container { padding: 14px; max-width: 600px; margin: 0 auto; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+    .card-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Inputs & Buttons */
+    input, select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+      padding: 11px 12px; border-radius: 10px; font-size: 14px; outline: none; margin-bottom: 10px;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+    .btn {
+      width: 100%; padding: 12px; border-radius: 10px; border: none; font-size: 14px;
+      font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-warning { background: var(--warning); color: #000; }
+
+    /* Mode Tabs */
+    .mode-switch { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
     .mode-btn {
-      background: #1e293b; border: 1px solid #475569; color: #94a3b8;
-      padding: 8px 2px; border-radius: 8px; font-size: 11.5px; font-weight: 800;
-      cursor: pointer; text-align: center; transition: all 0.2s;
+      padding: 10px; border-radius: 10px; border: 1px solid var(--border); background: var(--card2);
+      color: var(--muted); font-weight: 700; font-size: 13px; cursor: pointer; text-align: center;
     }
-    .mode-btn.active { background: #2563eb; color: #fff; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37,99,235,0.4); }
+    .mode-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+    .mode-btn.return.active { background: var(--danger); border-color: var(--danger); }
 
-    .submode-bar {
-      display: flex; gap: 6px; margin-bottom: 10px; background: #1e293b; padding: 6px; border-radius: 8px; border: 1px solid #334155;
+    /* Search Dropdown */
+    .search-row { display: flex; gap: 8px; position: relative; }
+    .scan-btn {
+      background: var(--success); color: #fff; border: none; border-radius: 10px;
+      padding: 0 16px; height: 42px; font-weight: 700; cursor: pointer; white-space: nowrap;
     }
-    .submode-btn {
-      flex: 1; padding: 6px; font-size: 12px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: #94a3b8;
+    .dropdown-list {
+      position: absolute; top: 46px; left: 0; right: 0; background: var(--card2);
+      border: 1px solid var(--border); border-radius: 10px; max-height: 220px;
+      overflow-y: auto; z-index: 500; box-shadow: 0 10px 25px rgba(0,0,0,0.6); display: none;
     }
-    .submode-btn.active { background: #0284c7; color: #fff; }
+    .dropdown-item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; font-size: 13px; }
+    .dropdown-item:hover { background: var(--primary); }
 
-    .card {
-      background: #1e293b; border-radius: 10px; border: 1px solid #334155;
-      padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    /* Cart Table */
+    .cart-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
     }
-    .card-header { font-size: 13.5px; font-weight: 700; color: #38bdf8; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .qty-box { display: flex; align-items: center; gap: 8px; }
+    .qty-btn {
+      width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--card2); color: #fff; font-weight: 700; cursor: pointer;
+    }
 
-    .action-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; position: relative; }
-    .search-input {
-      width: 100%; background: #0f172a; border: 1.5px solid #38bdf8; color: #fff;
-      padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: bold; text-transform: uppercase;
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; background: var(--card);
+      border-top: 1px solid var(--border); display: grid; grid-template-columns: repeat(4, 1fr);
+      padding: 8px 4px; z-index: 200;
     }
-    .search-input:focus { outline: none; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      color: var(--muted); font-size: 11px; font-weight: 600; cursor: pointer; border: none; background: none;
+    }
+    .nav-item.active { color: var(--primary); }
+    .nav-icon { font-size: 18px; }
+
+    /* Modals */
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000;
+      display: none; align-items: center; justify-content: center; padding: 16px;
+    }
+    .modal-box {
+      background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 18px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto;
+    }
+    .tab-section { display: none; }
+    .tab-section.active { display: block; }
     
-    .btn-camera {
-      background: #059669; color: #fff; border: none; padding: 10px 12px;
-      border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer;
-      display: flex; align-items: center; gap: 4px; white-space: nowrap;
-    }
-    .btn-camera:hover { background: #047857; }
-
-    .search-suggestions {
-      position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
-      border: 1px solid #38bdf8; border-radius: 8px; max-height: 240px;
-      overflow-y: auto; z-index: 100; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-    }
-    .suggestion-row {
-      padding: 8px 10px; border-bottom: 1px solid #1e293b; cursor: pointer;
-      display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;
-    }
-    .suggestion-row:hover { background: #1e293b; color: #38bdf8; }
-
-    #scannerWrapper {
-      display: none; position: relative; width: 100%; border-radius: 8px; overflow: hidden;
-      border: 2px solid #38bdf8; background: #000; margin-bottom: 10px;
-    }
-    #scannerVideo { width: 100%; height: 240px; object-fit: cover; display: block; }
-    .scanner-laser {
-      position: absolute; top: 50%; left: 8%; right: 8%; height: 2.5px; background: #ef4444;
-      box-shadow: 0 0 10px #ef4444; animation: scanAnim 1.6s infinite ease-in-out;
-    }
-    @keyframes scanAnim {
-      0% { top: 18%; }
-      50% { top: 82%; }
-      100% { top: 18%; }
-    }
-    .scan-guide-box {
-      position: absolute; top: 15%; bottom: 15%; left: 10%; right: 10%;
-      border: 2px dashed rgba(56, 189, 248, 0.8); border-radius: 8px; pointer-events: none;
-    }
-
-    #scanToast {
-      position: fixed; top: 62px; left: 50%; transform: translateX(-50%);
-      padding: 8px 18px; border-radius: 30px; font-weight: 800; font-size: 13px;
-      z-index: 9999; display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.6);
-      transition: all 0.25s; text-align: center; max-width: 90%;
-    }
-
-    .party-panel {
-      background: #0f172a; border: 1px solid #334155; border-radius: 8px;
-      padding: 8px 10px; margin-bottom: 8px; position: relative;
-    }
-    .party-bal { font-size: 13px; font-weight: 900; }
-    .bal-red { color: #f87171; }
-    .bal-green { color: #4ade80; }
-
-    .cart-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
-    .cart-table th { background: #0f172a; color: #94a3b8; padding: 6px 4px; text-align: left; font-size: 11px; }
-    .cart-table td { padding: 8px 4px; border-bottom: 1px solid #334155; }
-    .cart-qty-input { width: 48px; background: #0f172a; border: 1px solid #475569; color: #fff; text-align: center; padding: 6px 2px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-    .cart-price-input { width: 68px; background: #0f172a; border: 1px solid #475569; color: #f59e0b; text-align: right; padding: 6px 4px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-    .btn-del { color: #ef4444; background: none; border: none; font-size: 16px; cursor: pointer; padding: 0 4px; }
-
-    .summary-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-top: 10px; }
-    .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px; color: #94a3b8; }
-    .summary-row.total { font-size: 17px; font-weight: 900; color: #38bdf8; border-top: 1px solid #334155; padding-top: 6px; margin-top: 6px; }
-
-    .pay-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
-    .pay-btn {
-      padding: 10px 4px; font-size: 12px; font-weight: 800; border-radius: 6px; border: 1px solid #475569;
-      background: #0f172a; color: #94a3b8; cursor: pointer; text-align: center;
-    }
-    .pay-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
-
-    .checkout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
-    .btn-checkout {
-      border: none; padding: 12px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px;
-    }
-    .btn-checkout:disabled { opacity: 0.6; cursor: not-allowed; }
-    .btn-thermal { background: #16a34a; color: #fff; }
-    .btn-a4 { background: #0284c7; color: #fff; }
-    .btn-noprint { background: #475569; color: #fff; }
-    .btn-whatsapp { background: #25d366; color: #000; font-weight: 900; }
-
-    .modal-overlay {
-      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
-      display: none; align-items: center; justify-content: center; z-index: 1000; padding: 12px;
-    }
-    .modal-card {
-      background: #1e293b; border: 1px solid #38bdf8; border-radius: 12px;
-      padding: 16px; width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column;
-    }
-    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-    .modal-body { overflow-y: auto; flex: 1; }
-    .form-group { margin-bottom: 10px; }
-    .form-group label { display: block; font-size: 11.5px; color: #94a3b8; margin-bottom: 4px; font-weight: bold; }
-    .form-input {
-      width: 100%; background: #0f172a; border: 1px solid #475569; color: #fff;
-      padding: 8px 10px; border-radius: 6px; font-size: 13.5px; font-weight: bold;
-    }
-    .btn-primary { width: 100%; background: #2563eb; color: #fff; border: none; padding: 11px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
-
-    .bill-item {
-      background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px;
-      margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
-    }
-    .bill-info b { font-size: 13.5px; color: #38bdf8; }
-    .bill-info small { color: #94a3b8; font-size: 11.5px; display: block; margin-top: 2px; }
-    .bill-actions { display: flex; gap: 4px; }
-    .btn-reprint { background: #059669; color: #fff; border: none; padding: 6px 9px; border-radius: 5px; font-size: 11.5px; cursor: pointer; font-weight: bold; }
-    .btn-wa-reprint { background: #25d366; color: #000; border: none; padding: 6px 9px; border-radius: 5px; font-size: 11.5px; cursor: pointer; font-weight: bold; }
-
-    .stock-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 10px; }
-
-    #hiddenReceiptCard {
-      position: absolute; left: -9999px; top: 0; width: 380px;
-      background: #ffffff; color: #000000; padding: 16px; font-family: monospace, sans-serif;
-      border: 1px solid #ddd;
-    }
-    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-    .rcpt-header h2 { font-size: 17px; margin-bottom: 2px; }
-    .rcpt-header p { font-size: 11px; margin: 1px 0; }
-    .rcpt-meta { font-size: 11px; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
-    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
-    .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
-    .rcpt-table td { padding: 4px 2px; }
-    .rcpt-totals { border-top: 1px dashed #000; padding-top: 6px; font-size: 12px; margin-bottom: 10px; }
-    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
-    .rcpt-qr { text-align: center; margin-top: 10px; }
-    .rcpt-footer { text-align: center; font-size: 10px; margin-top: 6px; }
+    /* Statement Table */
+    table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+    th, td { padding: 8px 6px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); background: var(--card2); }
+    .badge { padding: 3px 7px; border-radius: 6px; font-size: 10px; font-weight: 700; }
+    .badge-green { background: rgba(16,185,129,0.2); color: var(--success); }
+    .badge-red { background: rgba(239,68,68,0.2); color: var(--danger); }
   </style>
 </head>
 <body>
 
-  <div id="scanToast"></div>
+<!-- 1. PASSWORD / PIN LOGIN & MULTI-SHOP GATE -->
+<div id="loginScreen">
+  <div class="pin-card">
+    <div style="font-size: 32px; margin-bottom: 6px;">🏪</div>
+    <h2 style="font-size: 19px; margin-bottom: 4px;">SAMPOS Cloud Access</h2>
+    <p style="font-size: 12px; color: var(--muted);" id="loginHint">Enter Shop PIN to Switch & Login</p>
+    
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div id="loginError" style="color: var(--danger); font-size: 12px; min-height: 18px;"></div>
 
-  <div class="container">
-    <div class="top-bar">
-      <h2>📱 SAMPOS Cloud Mobile</h2>
-      <div class="top-btns">
-        <button class="btn-icon btn-recent" onclick="openRecentBillsModal()">📜 Recent</button>
-        <button class="btn-icon" onclick="loadInitialData(true)">🔄 Sync</button>
-        <button class="btn-icon" onclick="openServerConfigModal()">⚙️</button>
-      </div>
+    <div class="keypad">
+      <button class="key-btn" onclick="pressPin('1')">1</button>
+      <button class="key-btn" onclick="pressPin('2')">2</button>
+      <button class="key-btn" onclick="pressPin('3')">3</button>
+      <button class="key-btn" onclick="pressPin('4')">4</button>
+      <button class="key-btn" onclick="pressPin('5')">5</button>
+      <button class="key-btn" onclick="pressPin('6')">6</button>
+      <button class="key-btn" onclick="pressPin('7')">7</button>
+      <button class="key-btn" onclick="pressPin('8')">8</button>
+      <button class="key-btn" onclick="pressPin('9')">9</button>
+      <button class="key-btn" style="font-size: 14px; color: var(--warning);" onclick="openShopManager()">⚙️ Shops</button>
+      <button class="key-btn" onclick="pressPin('0')">0</button>
+      <button class="key-btn" style="font-size: 16px; color: var(--danger);" onclick="clearPin()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- 2. HEADER -->
+<header>
+  <div class="shop-badge">
+    <span class="shop-title" id="hdrShopName">Loading Shop...</span>
+    <span class="shop-sub" id="hdrShopMeta">● Cloud Synced | VAT: ---</span>
+  </div>
+  <div class="hdr-actions">
+    <button class="btn-sm" onclick="openShopManager()">🏪 Shops</button>
+    <button class="btn-sm" style="color: var(--warning);" onclick="lockApp()">🔒 Lock</button>
+  </div>
+</header>
+
+<!-- 3. MAIN CONTENT -->
+<div class="container">
+
+  <!-- TAB 1: SALES & RETURNS -->
+  <div id="tab-sales" class="tab-section active">
+    <div class="mode-switch">
+      <div class="mode-btn active" id="btnNormalSale" onclick="setSaleMode(false)">⚡ Normal Sale</div>
+      <div class="mode-btn return" id="btnReturnSale" onclick="setSaleMode(true)">↩️ Sales Return</div>
     </div>
 
-    <div class="mode-selector">
-      <button class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales</button>
-      <button class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
-      <button class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock Take</button>
-      <button class="mode-btn" onclick="openServerConfigModal()">☁️ Cloud</button>
-    </div>
-
-    <div class="submode-bar" id="submodeBar">
-      <button class="submode-btn active" id="submodeNormal" onclick="setSubmode('normal')">⚡ Normal Billing</button>
-      <button class="submode-btn" id="submodeReturn" onclick="setSubmode('return')">🔄 Return / Refund</button>
-    </div>
-
-    <div class="card" id="partyCard">
-      <div class="card-header">
-        <span id="partyHeaderTitle">👤 Customer (ക്രെഡിറ്റ് / കസ്റ്റമർ)</span>
-        <span class="party-bal" id="partyBalDisplay">Due: 0.00 SAR</span>
+    <div class="card">
+      <div class="card-title">
+        <span>👤 Customer (Optional for Cash)</span>
+        <span id="custDueLabel" style="color: var(--danger);">Due: 0.00 SAR</span>
       </div>
-      <div class="party-panel">
-        <div style="position: relative;">
-          <input type="text" id="partySearchInput" class="form-input" placeholder="Type Name or Phone / തിരഞ്ഞെടുക്കുക..." oninput="handlePartySearch(this.value)">
-          <div id="partySuggestions" class="search-suggestions"></div>
-        </div>
-        <div id="partyQuickAction" style="display:none; margin-top:6px; justify-content:flex-end;">
-          <button class="btn-icon" style="background:#0284c7; padding:4px 10px; font-size:11px;" onclick="openPaymentVoucherModal()">💵 വരവ് / പേയ്‌മെന്റ് നൽകാൻ</button>
-        </div>
-      </div>
-
-      <div id="suppBillGroup" style="display:none; margin-top: 6px;">
-        <label style="font-size: 11px; color: #94a3b8; font-weight: bold;">Supplier Bill No (ബിൽ നമ്പർ) *</label>
-        <input type="text" id="inputSuppBillNo" class="form-input" placeholder="e.g. 84591">
+      <div style="position: relative;">
+        <input type="text" id="saleCustomerSearch" placeholder="Search Customer Name or Phone..." oninput="filterCustomers(this.value)" />
+        <div class="dropdown-list" id="saleCustomerDropdown"></div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-header">
-        <span id="scanHeaderTitle">🔍 Search or Scan Barcode / QR</span>
-        <span id="serverStatusBadge" style="font-size:11px; color:#f59e0b;">⏳ Connecting...</span>
+      <div class="card-title"><span>🔍 Add Items (Barcode / Name)</span></div>
+      <div class="search-row">
+        <input type="text" id="saleItemSearch" placeholder="Scan Barcode or Type Item..." oninput="filterSaleItems(this.value)" />
+        <button class="scan-btn" onclick="openScanner('sale')">📷 Scan</button>
+        <div class="dropdown-list" id="saleItemDropdown"></div>
       </div>
 
-      <div class="action-grid">
-        <div style="position: relative;">
-          <input type="text" id="itemSearchInput" class="search-input" placeholder="🔍 Barcode OR Item Name..." oninput="handleItemSearch(this.value)" onkeydown="handleItemKeyDown(event)">
-          <div id="itemSuggestions" class="search-suggestions"></div>
-        </div>
-        <button class="btn-camera" onclick="toggleCameraScanner()" id="btnCamToggle">📷 Scan</button>
-        <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleImageBarcodeScan(this)">
-      </div>
+      <div id="saleCartList" style="margin-top: 8px;"></div>
 
-      <div id="scannerWrapper">
-        <video id="scannerVideo" playsinline autoplay muted></video>
-        <div class="scanner-laser"></div>
-        <div class="scan-guide-box"></div>
-      </div>
-
-      <div id="stockTakeBox" style="display:none;" class="stock-box">
-        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;" id="stkItemName">Scan or search an item above</div>
-        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; color:#94a3b8;">
-          <span>Barcode: <b id="stkBarcode" style="color:#fff;">--</b></span>
-          <span>PLU: <b id="stkPlu" style="color:#fff;">--</b></span>
+      <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);">
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--muted);">
+          <span>Subtotal (Excl. VAT):</span><span id="saleSubtotal">0.00</span>
         </div>
-        <div style="margin-top:8px; border-top:1px solid #334155; padding-top:8px; display:flex; justify-content:space-between;">
-          <span>Current System Stock: <b id="stkCurrentStock" style="color:#4ade80; font-size:15px;">0</b></span>
+        <div style="display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin:4px 0;">
+          <span>VAT (15%):</span><span id="saleVat">0.00</span>
         </div>
-        <div style="margin-top:10px;">
-          <label style="font-size:11.5px; color:#94a3b8; font-weight:bold;">Rack Physical Count (റാക്കിലെ യഥാർത്ഥ എണ്ണം):</label>
-          <div style="display:flex; gap:6px; margin-top:4px;">
-            <input type="number" id="inputPhysicalCount" class="form-input" style="font-size:16px; text-align:center; font-weight:bold;" onclick="this.select()" onfocus="this.select()">
-            <button class="btn-primary" style="width:120px;" onclick="saveStockTake()">💾 Update</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card" id="cartCard">
-      <div class="card-header">
-        <span>🛒 Bill Cart Items (<span id="cartCount">0</span>)</span>
-        <button onclick="clearCart()" style="background:none; border:none; color:#f87171; font-size:12px; cursor:pointer; font-weight:bold;">🗑️ Clear</button>
-      </div>
-
-      <table class="cart-table">
-        <thead>
-          <tr>
-            <th>Item & Cost(Inc.VAT)</th>
-            <th style="text-align:center;">Qty</th>
-            <th style="text-align:right;">Price</th>
-            <th style="text-align:right;">Total</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cartTableBody">
-          <tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Cart is empty. Scan items to add.</td></tr>
-        </tbody>
-      </table>
-
-      <div class="summary-box">
-        <div class="summary-row">
-          <span>Subtotal (Excl. VAT):</span>
-          <span id="lblSubtotal">0.00 SAR</span>
-        </div>
-        <div class="summary-row">
-          <span>VAT (15%):</span>
-          <span id="lblVat">0.00 SAR</span>
-        </div>
-        <div class="summary-row total">
-          <span>NET TOTAL:</span>
-          <span id="lblNetTotal">0.00 SAR</span>
+        <div style="display:flex; justify-content:space-between; font-size:18px; font-weight:800; color:var(--success); margin-top:6px;">
+          <span>Total (Inc. VAT):</span><span id="saleGrandTotal">0.00 SAR</span>
         </div>
       </div>
 
-      <div class="pay-methods" id="payMethodSection">
-        <button class="pay-btn active" id="payBtnCash" onclick="setPaymentMethod('CASH')">💵 CASH</button>
-        <button class="pay-btn" id="payBtnCard" onclick="setPaymentMethod('BANK')">💳 CARD/BANK</button>
-        <button class="pay-btn" id="payBtnCredit" onclick="setPaymentMethod('CREDIT')">📑 CREDIT</button>
-      </div>
-
-      <div class="checkout-grid" id="checkoutSection">
-        <button class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🖨️ Save & Print (80mm)</button>
-        <button class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 Save & A4</button>
-        <button class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save to Cloud/PC</button>
-        <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp Image</button>
-      </div>
-
-      <div id="purchaseActionSection" style="display:none; margin-top:12px;">
-        <button class="btn-primary" style="background:#059669; padding:14px; font-size:15px;" onclick="executePurchaseSave()">📦 Save Purchase / സംരക്ഷിക്കുക</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Recent Bills Modal -->
-  <div class="modal-overlay" id="recentBillsModal">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3 style="color:#a78bfa; font-size:15px;">📜 Recent Invoices / മുൻ ബില്ലുകൾ</h3>
-        <button onclick="closeRecentBillsModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✖</button>
-      </div>
-      <div class="modal-body" id="recentBillsList">
-        <div style="text-align:center; color:#94a3b8; padding:20px;">Loading recent bills...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Payment Voucher Modal -->
-  <div class="modal-overlay" id="paymentVoucherModal">
-    <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;" id="lblVoucherTitle">💵 Payment / Receipt Entry</h3>
-      <div class="form-group">
-        <label>Selected Party / കസ്റ്റമർ / സപ്ലയർ:</label>
-        <input type="text" id="vPartyName" class="form-input" readonly style="color:#38bdf8; background:#0f172a;">
-      </div>
-      <div class="form-group">
-        <label>Current Outstanding Balance / ബാക്കി തുക:</label>
-        <input type="text" id="vCurrentBal" class="form-input" readonly style="color:#f59e0b; background:#0f172a;">
-      </div>
-      <div class="form-group">
-        <label>Amount Received / നൽകിയ തുക (SAR) *:</label>
-        <input type="number" step="0.01" id="vAmount" class="form-input" placeholder="0.00" onclick="this.select()" onfocus="this.select()">
-      </div>
-      <div class="form-group">
-        <label>Payment Mode / പണം നൽകിയ രീതി:</label>
-        <select id="vPayMode" class="form-input">
-          <option value="CASH">CASH (കൗണ്ടർ ക്യാഷ്)</option>
-          <option value="BANK">BANK / CARD (ബാങ്ക് അക്കൗണ്ട്)</option>
+      <div style="margin-top: 12px;">
+        <select id="salePayMethod">
+          <option value="CASH">💵 CASH (نقدي)</option>
+          <option value="BANK">💳 MADA / BANK (شبكة / تحويل)</option>
+          <option value="CREDIT">📒 CREDIT / A/R (آجل على العميل)</option>
         </select>
+        <button class="btn btn-success" id="btnSubmitSale" onclick="submitSale()">✅ Complete & Save Invoice</button>
       </div>
-      <button class="btn-primary" onclick="submitPartyPayment()">💾 Save Voucher Entry</button>
-      <button class="btn-icon" style="width:100%; margin-top:8px;" onclick="closePaymentVoucherModal()">Cancel</button>
     </div>
   </div>
 
-  <!-- Cloud & Local Printer Configuration Modal -->
-  <div class="modal-overlay" id="serverModal">
-    <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;">☁️ Supabase Cloud & Local Print Setup</h3>
-      <div class="form-group">
-        <label>Supabase Project URL:</label>
-        <input type="text" id="cfgSbUrl" class="form-input" placeholder="https://xxxx.supabase.co">
+  <!-- TAB 2: PURCHASES (VENDOR ENTRY) -->
+  <div id="tab-purchase" class="tab-section">
+    <div class="card">
+      <div class="card-title"><span>🚚 Supplier / Vendor Purchase</span></div>
+      <select id="purVendorSelect">
+        <option value="147">LOCAL CASH VENDOR (مورد نقدي محلي)</option>
+      </select>
+      <input type="text" id="purSupplierInv" placeholder="Supplier Invoice No (Optional)..." />
+      
+      <div class="search-row">
+        <input type="text" id="purItemSearch" placeholder="Search Item to Purchase..." oninput="filterPurItems(this.value)" />
+        <button class="scan-btn" onclick="openScanner('purchase')">📷 Scan</button>
+        <div class="dropdown-list" id="purItemDropdown"></div>
       </div>
-      <div class="form-group">
-        <label>Supabase Anon Key:</label>
-        <input type="text" id="cfgSbKey" class="form-input" placeholder="sb_publishable_...">
+
+      <div id="purCartList" style="margin-top: 8px;"></div>
+
+      <div style="margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--border);">
+        <div style="display:flex; justify-content:space-between; font-size:16px; font-weight:800; color:var(--warning);">
+          <span>Purchase Total:</span><span id="purGrandTotal">0.00 SAR</span>
+        </div>
       </div>
-      <div class="form-group">
-        <label>Shop Local PC IP (പ്രിന്ററിന് മാത്രം - ഓപ്ഷണൽ):</label>
-        <input type="text" id="cfgServerIp" class="form-input" placeholder="192.168.100.141">
+
+      <div style="margin-top: 12px;">
+        <select id="purPayMethod">
+          <option value="CASH">💵 Paid Cash</option>
+          <option value="BANK">💳 Paid Bank</option>
+          <option value="CREDIT">📒 Credit Purchase (Payable)</option>
+        </select>
+        <button class="btn btn-warning" onclick="submitPurchase()">📥 Save Purchase & Update Stock</button>
       </div>
-      <div class="form-group">
-        <label>Mobile Terminal Prefix:</label>
-        <input type="text" id="cfgTerminalId" class="form-input" placeholder="M1">
-      </div>
-      <button class="btn-primary" onclick="saveServerConfig()">💾 Save & Connect Cloud</button>
-      <button class="btn-icon" style="width:100%; margin-top:8px;" onclick="closeServerConfigModal()">Cancel</button>
     </div>
   </div>
 
-  <!-- HIDDEN OFF-SCREEN INVOICE RENDERING CONTAINER -->
-  <div id="hiddenReceiptCard">
-    <div class="rcpt-header">
-      <h2 id="rStoreName">STORE NAME</h2>
-      <p id="rStoreNameAr">اسم المتجر</p>
-      <p>VAT No / الرقم الضريبي: <span id="rStoreVat">300000000000003</span></p>
-      <p id="rStoreAddr">Saudi Arabia</p>
-      <p style="font-weight:bold; margin-top:4px;">SIMPLIFIED TAX INVOICE / فاتورة ضريبية مبسطة</p>
-    </div>
-    <div class="rcpt-meta">
-      <div style="display:flex; justify-content:space-between;">
-        <span>Invoice No: <b id="rInvNo">INV-001</b></span>
-        <span id="rInvDate">2026-11-13</span>
-      </div>
-      <div style="margin-top:2px;">Customer: <span id="rCustName">WALK-IN CUSTOMER</span></div>
-    </div>
-    <table class="rcpt-table">
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th style="text-align:center;">Qty</th>
-          <th style="text-align:right;">Price</th>
-          <th style="text-align:right;">Total</th>
-        </tr>
-      </thead>
-      <tbody id="rItemsBody"></tbody>
-    </table>
-    <div class="rcpt-totals">
-      <div class="rcpt-tot-row"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00 SAR</span></div>
-      <div class="rcpt-tot-row"><span>VAT (15%):</span><span id="rVat">0.00 SAR</span></div>
-      <div class="rcpt-tot-row grand"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
-      <div class="rcpt-tot-row" style="margin-top:4px;"><span>Payment:</span><span id="rPayMethod">CASH</span></div>
-    </div>
-    <div class="rcpt-qr">
-      <div id="rQrCanvas" style="display:inline-block;"></div>
-    </div>
-    <div class="rcpt-footer">
-      <p>Thank You For Shopping With Us / شكراً لزيارتكم</p>
-    </div>
-  </div>
+  <!-- TAB 3: PARTY LEDGER & WHATSAPP REPORTS -->
+  <div id="tab-reports" class="tab-section">
+    <div class="card">
+      <div class="card-title"><span>📊 Customer & Vendor Statement</span></div>
+      <select id="repPartyType" onchange="loadReportParties()">
+        <option value="customer">Customers (العملاء)</option>
+        <option value="vendor">Vendors / Suppliers (الموردين)</option>
+      </select>
+      <select id="repPartySelect" onchange="loadPartyStatement()">
+        <option value="">-- Select Party --</option>
+      </select>
 
-  <script>
-    const DEFAULT_SB_URL = 'https://kuaepkcztqwxufigxedh.supabase.co';
-    const DEFAULT_SB_KEY = 'sb_publishable_qX_T6777_1x3F0nO15B5sA_rO3sJ8L5';
-
-    let sbClient = null;
-    let isSaving = false;
-
-    function getCloudConfig() {
-      return {
-        sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
-        sbKey: localStorage.getItem('sampos_sb_key') || DEFAULT_SB_KEY,
-        ip: localStorage.getItem('pos_mobile_server_ip') || window.location.hostname || '192.168.100.141',
-        port: localStorage.getItem('pos_mobile_server_port') || '6060',
-        terminalId: localStorage.getItem('pos_mobile_terminal_id') || 'M1'
-      };
-    }
-
-    function initSupabase() {
-      const cfg = getCloudConfig();
-      if (window.supabase && cfg.sbUrl && cfg.sbKey) {
-        sbClient = window.supabase.createClient(cfg.sbUrl, cfg.sbKey);
-      }
-    }
-
-    // ZATCA Sequential Invoice Number Generator (e.g., M1-20261113-0001)
-    async function generateSequentialInvoiceNo(terminalId, invDate) {
-      const dateStr = invDate.replace(/-/g, '');
-      const prefix = `${terminalId}-${dateStr}-`;
-      try {
-        const { data } = await sbClient
-          .from('invoices')
-          .select('invoice_no')
-          .ilike('invoice_no', `${prefix}%`)
-          .order('invoice_no', { ascending: false })
-          .limit(1);
-
-        let nextNum = 1;
-        if (data && data.length > 0 && data[0].invoice_no) {
-          const parts = data[0].invoice_no.split('-');
-          const lastSeq = parseInt(parts[parts.length - 1], 10);
-          if (!isNaN(lastSeq)) nextNum = lastSeq + 1;
-        }
-        return `${prefix}${String(nextNum).padStart(4, '0')}`;
-      } catch (e) {
-        const fallbackSeq = parseInt(localStorage.getItem(`seq_${prefix}`) || '0', 10) + 1;
-        localStorage.setItem(`seq_${prefix}`, String(fallbackSeq));
-        return `${prefix}${String(fallbackSeq).padStart(4, '0')}`;
-      }
-    }
-
-    // ZATCA Base64 TLV QR Generator
-    function generateZatcaQrBase64(sellerName, vatNumber, timestamp, totalWithVat, vatTotal) {
-      function toTLV(tag, value) {
-        const encoder = new TextEncoder();
-        const valBytes = encoder.encode(String(value));
-        const buf = new Uint8Array(2 + valBytes.length);
-        buf[0] = tag;
-        buf[1] = valBytes.length;
-        buf.set(valBytes, 2);
-        return buf;
-      }
-      const b1 = toTLV(1, sellerName || 'STORE');
-      const b2 = toTLV(2, vatNumber || '300000000000003');
-      const b3 = toTLV(3, timestamp);
-      const b4 = toTLV(4, Number(totalWithVat).toFixed(2));
-      const b5 = toTLV(5, Number(vatTotal).toFixed(2));
-
-      const combined = new Uint8Array(b1.length + b2.length + b3.length + b4.length + b5.length);
-      let offset = 0;
-      [b1, b2, b3, b4, b5].forEach(arr => { combined.set(arr, offset); offset += arr.length; });
-
-      let binary = '';
-      for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
-      return btoa(binary);
-    }
-
-    let mainMode = 'sale';
-    let subMode = 'normal';
-    let selectedPayMethod = 'CASH';
-
-    let productsList = [];
-    let customersList = [];
-    let vendorsList = [];
-    let storeSettings = {};
-
-    let activeParty = null;
-    let cart = [];
-    let stockTargetItem = null;
-
-    let videoStream = null;
-    let barcodeDetector = null;
-    let scanAnimFrame = null;
-
-    window.onload = async () => {
-      initSupabase();
-      if ('BarcodeDetector' in window) {
-        try {
-          barcodeDetector = new BarcodeDetector({
-            formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code']
-          });
-        } catch (e) {}
-      }
-      await loadInitialData();
-    };
-
-    async function fetchAllProducts() {
-      let all = [];
-      let from = 0;
-      const step = 1000;
-      while (true) {
-        const { data, error } = await sbClient
-          .from('products')
-          .select('*')
-          .order('id', { ascending: true })
-          .range(from, from + step - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        all = all.concat(data);
-        if (data.length < step) break;
-        from += step;
-      }
-      return all;
-    }
-
-    async function loadInitialData(showToast = false) {
-      try {
-        if (!sbClient) initSupabase();
-        document.getElementById('serverStatusBadge').innerHTML = '⏳ Syncing...';
-        document.getElementById('serverStatusBadge').style.color = '#f59e0b';
-
-        const [prods, partiesRes, setRes] = await Promise.all([
-          fetchAllProducts(),
-          sbClient.from('parties').select('*').order('name_en', { ascending: true }),
-          sbClient.from('settings').select('*').eq('id', 1).maybeSingle()
-        ]);
-
-        if (partiesRes.error) throw partiesRes.error;
-
-        productsList = prods || [];
-        const allParties = partiesRes.data || [];
-        customersList = allParties.filter(p => (p.type || '').toLowerCase() === 'customer' || !p.type);
-        vendorsList = allParties.filter(p => (p.type || '').toLowerCase() === 'vendor' || (p.type || '').toLowerCase() === 'supplier');
-        if (setRes.data) storeSettings = setRes.data;
-
-        document.getElementById('serverStatusBadge').innerHTML = `🟢 Cloud (${productsList.length})`;
-        document.getElementById('serverStatusBadge').style.color = '#4ade80';
-        if (showToast) showScanSuccessToast(`✅ ${productsList.length} പ്രോഡക്റ്റുകൾ സിങ്ക് ചെയ്തു`);
-      } catch (err) {
-        document.getElementById('serverStatusBadge').innerHTML = '🔴 Offline';
-        document.getElementById('serverStatusBadge').style.color = '#f87171';
-        if (showToast) showScanSuccessToast('Sync Error: ' + err.message, true);
-      }
-    }
-
-    function switchMainMode(mode) {
-      mainMode = mode;
-      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-      if (mode === 'sale') document.getElementById('modeSale').classList.add('active');
-      if (mode === 'purchase') document.getElementById('modePurchase').classList.add('active');
-      if (mode === 'stock') document.getElementById('modeStock').classList.add('active');
-
-      const partyCard = document.getElementById('partyCard');
-      const cartCard = document.getElementById('cartCard');
-      const submodeBar = document.getElementById('submodeBar');
-      const suppBillGroup = document.getElementById('suppBillGroup');
-      const stockTakeBox = document.getElementById('stockTakeBox');
-      const checkoutSection = document.getElementById('checkoutSection');
-      const purchaseActionSection = document.getElementById('purchaseActionSection');
-      const payMethodSection = document.getElementById('payMethodSection');
-      const partyQuickAction = document.getElementById('partyQuickAction');
-
-      activeParty = null;
-      document.getElementById('partySearchInput').value = '';
-      document.getElementById('partyBalDisplay').innerText = 'Due: 0.00 SAR';
-      partyQuickAction.style.display = 'none';
-
-      if (mode === 'sale') {
-        submodeBar.style.display = 'flex';
-        partyCard.style.display = 'block';
-        cartCard.style.display = 'block';
-        suppBillGroup.style.display = 'none';
-        stockTakeBox.style.display = 'none';
-        checkoutSection.style.display = 'grid';
-        payMethodSection.style.display = 'grid';
-        purchaseActionSection.style.display = 'none';
-        document.getElementById('partyHeaderTitle').innerText = '👤 Customer (ക്രെഡിറ്റ് / കസ്റ്റമർ)';
-        setPaymentMethod('CASH');
-      } else if (mode === 'purchase') {
-        submodeBar.style.display = 'flex';
-        partyCard.style.display = 'block';
-        cartCard.style.display = 'block';
-        suppBillGroup.style.display = 'block';
-        stockTakeBox.style.display = 'none';
-        checkoutSection.style.display = 'none';
-        payMethodSection.style.display = 'grid';
-        purchaseActionSection.style.display = 'block';
-        document.getElementById('partyHeaderTitle').innerText = '🚚 Supplier / Vendor (സപ്ലയർ)';
-        setPaymentMethod('CREDIT');
-      } else if (mode === 'stock') {
-        submodeBar.style.display = 'none';
-        partyCard.style.display = 'none';
-        cartCard.style.display = 'none';
-        stockTakeBox.style.display = 'block';
-      }
-      clearCart();
-    }
-
-    function setSubmode(sub) {
-      subMode = sub;
-      document.getElementById('submodeNormal').classList.toggle('active', sub === 'normal');
-      document.getElementById('submodeReturn').classList.toggle('active', sub === 'return');
-      renderCart();
-    }
-
-    function setPaymentMethod(pm) {
-      selectedPayMethod = pm;
-      document.getElementById('payBtnCash').classList.toggle('active', pm === 'CASH');
-      document.getElementById('payBtnCard').classList.toggle('active', pm === 'BANK');
-      document.getElementById('payBtnCredit').classList.toggle('active', pm === 'CREDIT');
-    }
-
-    function handlePartySearch(query) {
-      const q = query.trim().toUpperCase();
-      const dd = document.getElementById('partySuggestions');
-      const qa = document.getElementById('partyQuickAction');
-      if (!q) { dd.style.display = 'none'; activeParty = null; qa.style.display = 'none'; return; }
-
-      const list = (mainMode === 'purchase') ? vendorsList : customersList;
-      const matches = list.filter(p => (p.name_en || '').toUpperCase().includes(q) || (p.phone && p.phone.includes(q))).slice(0, 12);
-
-      dd.innerHTML = '';
-      matches.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'suggestion-row';
-        div.innerHTML = `<div><b>${p.name_en}</b><br><small style="color:#94a3b8;">${p.phone || ''}</small></div><div><b style="color:#f59e0b;">${(parseFloat(p.current_balance) || 0).toFixed(2)} SAR</b></div>`;
-        div.onclick = () => {
-          activeParty = p;
-          document.getElementById('partySearchInput').value = p.name_en;
-          dd.style.display = 'none';
-          const bal = parseFloat(p.current_balance) || 0;
-          document.getElementById('partyBalDisplay').innerText = `Bal: ${bal.toFixed(2)} SAR`;
-          document.getElementById('partyBalDisplay').className = 'party-bal ' + (bal > 0 ? 'bal-red' : 'bal-green');
-          setPaymentMethod('CREDIT');
-          qa.style.display = 'flex';
-        };
-        dd.appendChild(div);
-      });
-      dd.style.display = matches.length > 0 ? 'block' : 'none';
-    }
-
-    function handleItemSearch(query) {
-      const q = query.trim().toUpperCase();
-      const dd = document.getElementById('itemSuggestions');
-      if (!q) { dd.style.display = 'none'; return; }
-
-      const matches = productsList.filter(p => 
-        (p.name_en || '').toUpperCase().includes(q) || 
-        (p.barcode1 && p.barcode1.toUpperCase().includes(q)) || 
-        (p.barcode2 && p.barcode2.toUpperCase().includes(q)) ||
-        (p.item_code && p.item_code.toUpperCase().includes(q))
-      ).slice(0, 15);
-
-      dd.innerHTML = '';
-      matches.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'suggestion-row';
-        const baseCost = parseFloat(p.cost_price) || 0;
-        const costWithVat = (baseCost * 1.15).toFixed(2);
-        const priceToShow = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
-
-        div.innerHTML = `
+      <div id="repSummaryBox" style="display:none; background:var(--card2); padding:12px; border-radius:10px; margin-bottom:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
           <div>
-            <b>${p.name_en}</b><br>
-            <small style="color:#94a3b8;">Barcode: ${p.barcode1 || ''} | <span style="color:#a78bfa; font-weight:bold;">Cost(Inc.VAT): ${costWithVat}</span> | Stock: ${p.stock_quantity || 0}</small>
+            <div style="font-size:12px; color:var(--muted);">Current Balance</div>
+            <div style="font-size:20px; font-weight:800; color:var(--warning);" id="repBalanceVal">0.00 SAR</div>
           </div>
-          <div><b style="color:#38bdf8;">${priceToShow.toFixed(2)} SAR</b></div>
-        `;
-        div.onclick = () => {
-          addItemToCartOrStock(p);
-          document.getElementById('itemSearchInput').value = '';
-          dd.style.display = 'none';
-        };
-        dd.appendChild(div);
+          <button class="btn-sm" style="background:var(--success); color:#fff; border:none; padding:10px 14px;" onclick="shareStatementWhatsApp()">📲 WhatsApp Report</button>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto;">
+        <table>
+          <thead>
+            <tr><th>Date</th><th>Ref / Details</th><th>Debit</th><th>Credit</th><th>Bal</th></tr>
+          </thead>
+          <tbody id="repLedgerBody">
+            <tr><td colspan="5" style="text-align:center; color:var(--muted);">Select a customer or vendor to view statement</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: RECENT INVOICES & STOCK -->
+  <div id="tab-history" class="tab-section">
+    <div class="card">
+      <div class="card-title">
+        <span>🧾 Recent Cloud Sales</span>
+        <button class="btn-sm" onclick="refreshAllData()">🔄 Refresh</button>
+      </div>
+      <div id="recentInvoicesList"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- 4. BOTTOM NAVIGATION -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="switchTab('sales', this)">
+    <span class="nav-icon">🛒</span><span>Sales</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('purchase', this)">
+    <span class="nav-icon">📥</span><span>Purchase</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('reports', this)">
+    <span class="nav-icon">📑</span><span>Statements</span>
+  </button>
+  <button class="nav-item" onclick="switchTab('history', this)">
+    <span class="nav-icon">🕒</span><span>History</span>
+  </button>
+</nav>
+
+<!-- 5. BARCODE / QR SCANNER MODAL -->
+<div class="modal" id="scannerModal">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+      <h3 style="font-size:15px;">📷 Scan Barcode / Setup QR</h3>
+      <button class="btn-sm" style="background:var(--danger); border:none;" onclick="closeScanner()">✕ Close</button>
+    </div>
+    <div id="qr-reader" style="width:100%; border-radius:10px; overflow:hidden;"></div>
+  </div>
+</div>
+
+<!-- 6. MULTI-SHOP MANAGER MODAL -->
+<div class="modal" id="shopManagerModal">
+  <div class="modal-box">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <h3 style="font-size:16px;">🏪 Multi-Shop Cloud Profiles</h3>
+      <button class="btn-sm" onclick="closeShopManager()">✕</button>
+    </div>
+
+    <div id="savedShopsList" style="margin-bottom:14px;"></div>
+
+    <div style="border-top:1px solid var(--border); padding-top:12px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+        <span style="font-size:13px; font-weight:700; color:var(--primary);">+ Add / Update Shop</span>
+        <button class="btn-sm" style="background:var(--success); border:none;" onclick="openScanner('shop_qr')">📷 Scan Shop QR</button>
+      </div>
+      <input type="text" id="cfgShopName" placeholder="Shop Name (e.g. NASSER TRADING)" />
+      <input type="text" id="cfgPin" maxlength="6" placeholder="Login PIN for this shop (e.g. 1111)" />
+      <input type="text" id="cfgUrl" placeholder="Supabase Project URL (https://xxx.supabase.co)" />
+      <input type="text" id="cfgKey" placeholder="Supabase Anon Public Key" />
+      <button class="btn btn-primary" onclick="saveShopProfile()">💾 Save Shop Profile</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // =========================================================================
+  // MULTI-SHOP & PIN AUTHENTICATION ENGINE
+  // =========================================================================
+  let shops = JSON.parse(localStorage.getItem('sampos_shops') || '[]');
+  let activeShop = null;
+  let sb = null;
+  let enteredPin = '';
+
+  let allProducts = [];
+  let allParties = [];
+  let storeSettings = {};
+  let saleCart = [];
+  let purCart = [];
+  let selectedSaleCustomer = null;
+  let isSaleReturn = false;
+  let html5QrCode = null;
+  let scanTarget = 'sale';
+
+  function pressPin(digit) {
+    if (enteredPin.length >= 4) return;
+    enteredPin += digit;
+    updatePinDots();
+    if (enteredPin.length === 4) {
+      setTimeout(verifyPinLogin, 150);
+    }
+  }
+
+  function clearPin() {
+    enteredPin = enteredPin.slice(0, -1);
+    updatePinDots();
+    document.getElementById('loginError').innerText = '';
+  }
+
+  function updatePinDots() {
+    const dots = document.querySelectorAll('#pinDots .pin-dot');
+    dots.forEach((d, idx) => {
+      d.classList.toggle('filled', idx < enteredPin.length);
+    });
+  }
+
+  function verifyPinLogin() {
+    if (shops.length === 0) {
+      document.getElementById('loginError').innerText = 'No shops configured! Tap "⚙️ Shops" to add.';
+      enteredPin = ''; updatePinDots();
+      return;
+    }
+    const matched = shops.find(s => s.pin === enteredPin);
+    if (!matched) {
+      document.getElementById('loginError').innerText = 'Invalid PIN! Try again.';
+      enteredPin = ''; updatePinDots();
+      return;
+    }
+    connectToShop(matched);
+  }
+
+  async function connectToShop(shop) {
+    activeShop = shop;
+    sb = window.supabase.createClient(shop.url, shop.key);
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('hdrShopName').innerText = shop.name;
+    document.getElementById('hdrShopMeta').innerText = '● Connecting to Cloud...';
+    enteredPin = ''; updatePinDots();
+    await refreshAllData();
+  }
+
+  function lockApp() {
+    activeShop = null;
+    enteredPin = '';
+    updatePinDots();
+    document.getElementById('loginScreen').style.display = 'flex';
+  }
+
+  // Shop Manager UI
+  function openShopManager() {
+    renderSavedShops();
+    document.getElementById('shopManagerModal').style.display = 'flex';
+  }
+  function closeShopManager() {
+    document.getElementById('shopManagerModal').style.display = 'none';
+  }
+
+  function renderSavedShops() {
+    const list = document.getElementById('savedShopsList');
+    if (shops.length === 0) {
+      list.innerHTML = '<div style="font-size:12px; color:var(--muted);">No shops added yet. Add your shop below.</div>';
+      return;
+    }
+    list.innerHTML = shops.map((s, idx) => `
+      <div style="background:var(--card2); padding:10px; border-radius:10px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-weight:700; font-size:13px;">${s.name}</div>
+          <div style="font-size:11px; color:var(--muted);">PIN: **** | ${s.url.replace('https://','').slice(0,22)}...</div>
+        </div>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-sm" style="background:var(--primary); border:none;" onclick="connectToShop(shops[${idx}]); closeShopManager();">Open</button>
+          <button class="btn-sm" style="background:var(--danger); border:none;" onclick="deleteShop(${idx})">🗑</button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function saveShopProfile() {
+    const name = document.getElementById('cfgShopName').value.trim();
+    const pin = document.getElementById('cfgPin').value.trim();
+    const url = document.getElementById('cfgUrl').value.trim();
+    const key = document.getElementById('cfgKey').value.trim();
+
+    if (!name || pin.length !== 4 || !url || !key) {
+      alert('Please enter Shop Name, 4-digit PIN, Supabase URL, and Key.');
+      return;
+    }
+    const existingIdx = shops.findIndex(s => s.pin === pin);
+    if (existingIdx >= 0) shops[existingIdx] = { name, pin, url, key };
+    else shops.push({ name, pin, url, key });
+
+    localStorage.setItem('sampos_shops', JSON.stringify(shops));
+    document.getElementById('cfgShopName').value = '';
+    document.getElementById('cfgPin').value = '';
+    document.getElementById('cfgUrl').value = '';
+    document.getElementById('cfgKey').value = '';
+    renderSavedShops();
+    alert('Shop saved! You can now login with PIN: ' + pin);
+  }
+
+  function deleteShop(idx) {
+    if (!confirm('Remove this shop profile?')) return;
+    shops.splice(idx, 1);
+    localStorage.setItem('sampos_shops', JSON.stringify(shops));
+    renderSavedShops();
+  }
+
+  // =========================================================================
+  // LOAD DATA FROM SUPABASE
+  // =========================================================================
+  async function refreshAllData() {
+    if (!sb) return;
+    try {
+      const [setRes, prodRes, partRes, invRes] = await Promise.all([
+        sb.from('settings').select('*').eq('id', 1).single(),
+        sb.from('products').select('*').eq('is_active', 1).order('name_en'),
+        sb.from('parties').select('*').eq('is_active', 1).order('name_en'),
+        sb.from('invoices').select('*').order('id', { ascending: false }).limit(20)
+      ]);
+
+      if (setRes.data) {
+        storeSettings = setRes.data;
+        document.getElementById('hdrShopName').innerText = storeSettings.company_name_en || activeShop.name;
+        document.getElementById('hdrShopMeta').innerText = `● Online | VAT: ${storeSettings.vat_number || 'N/A'}`;
+      } else {
+        document.getElementById('hdrShopMeta').innerText = '● Connected to Supabase';
+      }
+
+      allProducts = prodRes.data || [];
+      allParties = partRes.data || [];
+      populateVendors();
+      loadReportParties();
+      renderRecentInvoices(invRes.data || []);
+    } catch (err) {
+      document.getElementById('hdrShopMeta').innerText = '⚠️ Connection Error';
+      console.error(err);
+    }
+  }
+
+  // =========================================================================
+  // SALES & RETURNS LOGIC
+  // =========================================================================
+  function setSaleMode(isRet) {
+    isSaleReturn = isRet;
+    document.getElementById('btnNormalSale').classList.toggle('active', !isRet);
+    document.getElementById('btnReturnSale').classList.toggle('active', isRet);
+    document.getElementById('btnSubmitSale').innerText = isRet ? '↩️ Complete Sales Return' : '✅ Complete & Save Invoice';
+    document.getElementById('btnSubmitSale').className = isRet ? 'btn btn-danger' : 'btn btn-success';
+  }
+
+  function filterCustomers(q) {
+    const dd = document.getElementById('saleCustomerDropdown');
+    if (!q.trim()) { dd.style.display = 'none'; selectedSaleCustomer = null; document.getElementById('custDueLabel').innerText = 'Due: 0.00 SAR'; return; }
+    const matches = allParties.filter(p => (p.party_type === 'customer' || p.type === 'customer') &&
+      ((p.name_en || '').toLowerCase().includes(q.toLowerCase()) || (p.phone || '').includes(q)));
+    if (matches.length === 0) { dd.style.display = 'none'; return; }
+    dd.innerHTML = matches.slice(0, 15).map(c => `
+      <div class="dropdown-item" onclick="selectSaleCustomer(${c.id})">
+        <strong>${c.name_en}</strong> (${c.phone || 'No Phone'}) - Due: ${Number(c.current_balance || 0).toFixed(2)}
+      </div>
+    `).join('');
+    dd.style.display = 'block';
+  }
+
+  function selectSaleCustomer(id) {
+    selectedSaleCustomer = allParties.find(p => p.id === id);
+    if (selectedSaleCustomer) {
+      document.getElementById('saleCustomerSearch').value = selectedSaleCustomer.name_en;
+      document.getElementById('custDueLabel').innerText = `Due: ${Number(selectedSaleCustomer.current_balance || 0).toFixed(2)} SAR`;
+    }
+    document.getElementById('saleCustomerDropdown').style.display = 'none';
+  }
+
+  function filterSaleItems(q) {
+    const dd = document.getElementById('saleItemDropdown');
+    if (!q.trim()) { dd.style.display = 'none'; return; }
+    const ql = q.toLowerCase();
+    const matches = allProducts.filter(p =>
+      (p.barcode1 || '').toLowerCase().includes(ql) ||
+      (p.barcode2 || '').toLowerCase().includes(ql) ||
+      (p.name_en || '').toLowerCase().includes(ql) ||
+      (p.name_ar || '').includes(q)
+    );
+    if (matches.length === 0) { dd.style.display = 'none'; return; }
+    dd.innerHTML = matches.slice(0, 20).map(p => `
+      <div class="dropdown-item" onclick="addSaleItem(${p.id})">
+        <div style="display:flex; justify-content:space-between;">
+          <strong>${p.name_en}</strong>
+          <span style="color:var(--success); font-weight:700;">${Number(p.selling_price).toFixed(2)} SAR</span>
+        </div>
+        <div style="font-size:11px; color:var(--muted);">Code: ${p.barcode1} | Stock: ${p.stock_quantity}</div>
+      </div>
+    `).join('');
+    dd.style.display = 'block';
+  }
+
+  function addSaleItem(prodId) {
+    const prod = allProducts.find(p => p.id === prodId);
+    if (!prod) return;
+    const existing = saleCart.find(i => i.product_id === prodId);
+    if (existing) existing.qty += 1;
+    else {
+      saleCart.push({
+        product_id: prod.id,
+        item_code: prod.item_code,
+        barcode: prod.barcode1,
+        name_en: prod.name_en,
+        name_ar: prod.name_ar || prod.name_en,
+        unit: prod.unit || 'PCS',
+        cost_price: Number(prod.cost_price || 0),
+        selling_price: Number(prod.selling_price),
+        vat_rate: Number(prod.vat_rate || 15),
+        qty: 1
       });
-      dd.style.display = matches.length > 0 ? 'block' : 'none';
+    }
+    document.getElementById('saleItemSearch').value = '';
+    document.getElementById('saleItemDropdown').style.display = 'none';
+    renderSaleCart();
+  }
+
+  function renderSaleCart() {
+    const list = document.getElementById('saleCartList');
+    let totalInc = 0, totalVat = 0;
+
+    list.innerHTML = saleCart.map((item, idx) => {
+      const lineTotal = item.selling_price * item.qty;
+      const lineSub = lineTotal / (1 + item.vat_rate / 100);
+      const lineVat = lineTotal - lineSub;
+      totalInc += lineTotal;
+      totalVat += lineVat;
+
+      return `
+        <div class="cart-item">
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:700;">${item.name_en}</div>
+            <div style="font-size:11px; color:var(--muted);">${item.selling_price.toFixed(2)} x ${item.qty} = <strong>${lineTotal.toFixed(2)} SAR</strong></div>
+          </div>
+          <div class="qty-box">
+            <button class="qty-btn" onclick="updateSaleQty(${idx}, -1)">-</button>
+            <span style="font-weight:700; min-width:20px; text-align:center;">${item.qty}</span>
+            <button class="qty-btn" onclick="updateSaleQty(${idx}, 1)">+</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const subExcl = totalInc - totalVat;
+    document.getElementById('saleSubtotal').innerText = subExcl.toFixed(2);
+    document.getElementById('saleVat').innerText = totalVat.toFixed(2);
+    document.getElementById('saleGrandTotal').innerText = totalInc.toFixed(2) + ' SAR';
+  }
+
+  function updateSaleQty(idx, delta) {
+    saleCart[idx].qty += delta;
+    if (saleCart[idx].qty <= 0) saleCart.splice(idx, 1);
+    renderSaleCart();
+  }
+
+  async function submitSale() {
+    if (saleCart.length === 0) return alert('Cart is empty!');
+    const payMethod = document.getElementById('salePayMethod').value;
+    if (payMethod === 'CREDIT' && !selectedSaleCustomer) {
+      return alert('Please select a Customer for Credit sale!');
     }
 
-    function handleItemKeyDown(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        const code = e.target.value.trim().toUpperCase();
-        if (!code) return;
-        const found = productsList.find(p => p.barcode1 === code || p.barcode2 === code || p.item_code === code);
-        if (found) {
-          addItemToCartOrStock(found);
-          e.target.value = '';
-          document.getElementById('itemSuggestions').style.display = 'none';
-        } else {
-          showScanSuccessToast('Item not found for code: ' + code, true);
-        }
-      }
-    }
+    const btn = document.getElementById('btnSubmitSale');
+    btn.disabled = true; btn.innerText = '⏳ Saving to Cloud...';
 
-    function addItemToCartOrStock(p) {
-      if (mainMode === 'stock') {
-        stockTargetItem = p;
-        document.getElementById('stkItemName').innerText = p.name_en;
-        document.getElementById('stkBarcode').innerText = p.barcode1 || '--';
-        document.getElementById('stkPlu').innerText = p.item_code || '--';
-        document.getElementById('stkCurrentStock').innerText = p.stock_quantity || 0;
-        document.getElementById('inputPhysicalCount').value = p.stock_quantity || 0;
-        document.getElementById('inputPhysicalCount').focus();
-        return;
-      }
-
-      const exist = cart.find(it => it.product_id === p.id);
-      const defaultPrice = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
-      if (exist) {
-        exist.quantity += 1;
-      } else {
-        cart.push({
-          product_id: p.id,
-          barcode: p.barcode1 || '',
-          name_en: p.name_en,
-          name_ar: p.name_ar || '',
-          unit: p.unit || 'PCS',
-          cost_price: parseFloat(p.cost_price) || 0,
-          cost_with_vat: ((parseFloat(p.cost_price) || 0) * 1.15).toFixed(2),
-          selling_price: defaultPrice,
-          quantity: 1
-        });
-      }
-      renderCart();
-    }
-
-    function renderCart() {
-      const tbody = document.getElementById('cartTableBody');
-      tbody.innerHTML = '';
-      let subtotal = 0;
-
-      if (cart.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Cart is empty. Scan items to add.</td></tr>';
-        document.getElementById('lblSubtotal').innerText = '0.00 SAR';
-        document.getElementById('lblVat').innerText = '0.00 SAR';
-        document.getElementById('lblNetTotal').innerText = '0.00 SAR';
-        document.getElementById('cartCount').innerText = '0';
-        return;
-      }
-
-      cart.forEach((it, idx) => {
-        const lineTot = it.quantity * it.selling_price;
-        subtotal += lineTot;
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>
-            <b>${it.name_en}</b><br>
-            <small style="color:#a78bfa; font-weight:bold;">Cost(Inc.VAT): ${it.cost_with_vat} SAR</small>
-          </td>
-          <td style="text-align:center;">
-            <input type="number" step="any" class="cart-qty-input" value="${it.quantity}" 
-                   onclick="this.select()" onfocus="this.select()" onchange="updateCartQty(${idx}, this.value)">
-          </td>
-          <td style="text-align:right;">
-            <input type="number" step="0.01" class="cart-price-input" value="${it.selling_price.toFixed(2)}" 
-                   onclick="this.select()" onfocus="this.select()" onchange="updateCartPrice(${idx}, this.value)">
-          </td>
-          <td style="text-align:right; font-weight:bold; color:#38bdf8;">
-            ${lineTot.toFixed(2)}
-          </td>
-          <td style="text-align:center;">
-            <button class="btn-del" onclick="removeCartItem(${idx})">×</button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
-
-      const netTotal = subtotal;
-      const baseExcl = subtotal / 1.15;
-      const vatAmt = subtotal - baseExcl;
-
-      document.getElementById('cartCount').innerText = cart.length;
-      document.getElementById('lblSubtotal').innerText = baseExcl.toFixed(2) + ' SAR';
-      document.getElementById('lblVat').innerText = vatAmt.toFixed(2) + ' SAR';
-      document.getElementById('lblNetTotal').innerText = netTotal.toFixed(2) + ' SAR';
-    }
-
-    function updateCartQty(idx, val) {
-      const q = parseFloat(val);
-      if (q > 0) cart[idx].quantity = q;
-      else cart.splice(idx, 1);
-      renderCart();
-    }
-
-    function updateCartPrice(idx, val) {
-      const p = parseFloat(val);
-      if (!isNaN(p) && p >= 0) cart[idx].selling_price = p;
-      renderCart();
-    }
-
-    function removeCartItem(idx) {
-      cart.splice(idx, 1);
-      renderCart();
-    }
-
-    function clearCart() {
-      cart = [];
-      renderCart();
-    }
-
-    async function toggleCameraScanner() {
-      const wrap = document.getElementById('scannerWrapper');
-      if (wrap.style.display === 'block') {
-        stopCameraScanner();
-      } else {
-        await startCameraScanner();
-      }
-    }
-
-    async function startCameraScanner() {
-      const wrap = document.getElementById('scannerWrapper');
-      const video = document.getElementById('scannerVideo');
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        document.getElementById('cameraFileInput').click();
-        return;
-      }
-
-      try {
-        videoStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "environment" },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          }
-        });
-
-        video.srcObject = videoStream;
-        await video.play();
-        wrap.style.display = 'block';
-        document.getElementById('btnCamToggle').innerText = '⏹️ Cancel';
-
-        const scanLoop = async () => {
-          if (!videoStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
-            scanAnimFrame = requestAnimationFrame(scanLoop);
-            return;
-          }
-
-          if (barcodeDetector) {
-            try {
-              const barcodes = await barcodeDetector.detect(video);
-              if (barcodes.length > 0) {
-                const code = barcodes[0].rawValue.trim().toUpperCase();
-                if (navigator.vibrate) navigator.vibrate(80);
-                stopCameraScanner();
-                handleDetectedBarcode(code);
-                return;
-              }
-            } catch (err) {}
-          }
-          scanAnimFrame = requestAnimationFrame(scanLoop);
-        };
-
-        scanAnimFrame = requestAnimationFrame(scanLoop);
-      } catch (err) {
-        stopCameraScanner();
-        document.getElementById('cameraFileInput').click();
-      }
-    }
-
-    function stopCameraScanner() {
-      if (scanAnimFrame) {
-        cancelAnimationFrame(scanAnimFrame);
-        scanAnimFrame = null;
-      }
-      if (videoStream) {
-        videoStream.getTracks().forEach(track => track.stop());
-        videoStream = null;
-      }
-      document.getElementById('scannerWrapper').style.display = 'none';
-      document.getElementById('btnCamToggle').innerText = '📷 Scan';
-    }
-
-    function handleDetectedBarcode(code) {
-      const found = productsList.find(p => p.barcode1 === code || p.barcode2 === code || p.item_code === code);
-      if (found) {
-        addItemToCartOrStock(found);
-        showScanSuccessToast(`✅ ${found.name_en} ചേർത്തു`);
-      } else {
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        showScanSuccessToast(`❌ ബാർകോഡ് കണ്ടെത്തിയില്ല: ${code}`, true);
-      }
-    }
-
-    function showScanSuccessToast(msg, isError = false) {
-      const toast = document.getElementById('scanToast');
-      toast.style.background = isError ? '#ef4444' : '#10b981';
-      toast.style.color = '#fff';
-      toast.innerText = msg;
-      toast.style.display = 'block';
-      setTimeout(() => { toast.style.display = 'none'; }, 1500);
-    }
-
-    async function handleImageBarcodeScan(input) {
-      if (!input.files || input.files.length === 0) return;
-      const file = input.files[0];
-      const img = new Image();
-      img.src = URL.createObjectURL(file);
-      img.onload = async () => {
-        if (barcodeDetector) {
-          try {
-            const detected = await barcodeDetector.detect(img);
-            if (detected.length > 0) {
-              const code = detected[0].rawValue.trim().toUpperCase();
-              handleDetectedBarcode(code);
-            } else {
-              showScanSuccessToast('ബാർകോഡ് കണ്ടെത്താനായില്ല.', true);
-            }
-          } catch (e) {
-            showScanSuccessToast('Scan error: ' + e.message, true);
-          }
-        }
-      };
-    }
-
-    function setCheckoutButtonsDisabled(disabled) {
-      isSaving = disabled;
-      document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
-    }
-
-    // SAVE INVOICE WITH ZATCA PHASE 2 SEQUENTIAL NUMBERING (M1-YYYYMMDD-0001)
-    async function executeCheckout(action) {
-      if (isSaving) return;
-      if (cart.length === 0) { alert('Cart is empty!'); return; }
-
-      if (selectedPayMethod === 'CREDIT' && !activeParty) {
-        alert('ക്രെഡിറ്റ് (Credit) നൽകാൻ ദയവായി ഒരു കസ്റ്റമറെ തിരഞ്ഞെടുക്കുക.');
-        return;
-      }
-
-      setCheckoutButtonsDisabled(true);
-
-      const cfg = getCloudConfig();
-      const now = new Date();
-      const invDate = now.toISOString().slice(0, 10);
-      const invTime = now.toTimeString().slice(0, 8);
-      const isoTimestamp = now.toISOString();
-
-      const netTotal = cart.reduce((sum, it) => sum + (it.quantity * it.selling_price), 0);
-      const baseExcl = netTotal / 1.15;
-      const vatAmt = netTotal - baseExcl;
-      const customName = document.getElementById('partySearchInput').value.trim();
-      const isCredit = (selectedPayMethod === 'CREDIT');
-      const isReturn = (subMode === 'return') ? 1 : 0;
-
-      const uniqueId = Date.now();
-      const invoiceNo = await generateSequentialInvoiceNo(cfg.terminalId, invDate);
-      const zatcaQr = generateZatcaQrBase64(
-        storeSettings.company_name_en || 'RETAIL STORE',
-        storeSettings.vat_number || '300000000000003',
-        isoTimestamp,
-        netTotal,
-        vatAmt
-      );
-
-      const invRecord = {
-        id: uniqueId,
-        invoice_no: invoiceNo,
-        terminal_id: cfg.terminalId,
-        invoice_date: invDate,
-        invoice_time: invTime,
-        is_return: isReturn,
-        party_id: activeParty ? activeParty.id : null,
-        customer_name: activeParty ? activeParty.name_en : (customName || 'WALK-IN CUSTOMER'),
-        customer_phone: activeParty ? activeParty.phone : null,
-        customer_vat: activeParty ? activeParty.vat_number : null,
-        subtotal: Number(baseExcl.toFixed(2)),
-        vat_amount: Number(vatAmt.toFixed(2)),
-        total_amount: Number(netTotal.toFixed(2)),
-        payment_method: selectedPayMethod,
-        paid_cash: isCredit ? 0 : (selectedPayMethod === 'CASH' ? Number(netTotal.toFixed(2)) : 0),
-        paid_bank: isCredit ? 0 : (selectedPayMethod === 'BANK' ? Number(netTotal.toFixed(2)) : 0),
-        paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
-        zatca_qr: zatcaQr,
-        source_device: 'MOBILE',
-        is_synced: 0
-      };
-
-      const itemsRecords = cart.map((it, i) => {
-        const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
-        const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
+    try {
+      let totalInc = 0, totalVat = 0;
+      const itemsPayload = saleCart.map(it => {
+        const lineTotal = Number((it.selling_price * it.qty).toFixed(2));
+        const lineSub = lineTotal / (1 + it.vat_rate / 100);
+        const lineVat = Number((lineTotal - lineSub).toFixed(2));
+        totalInc += lineTotal;
+        totalVat += lineVat;
         return {
-          id: uniqueId + i + 1,
-          invoice_id: uniqueId,
           product_id: it.product_id,
+          item_code: it.item_code,
           barcode: it.barcode,
           name_en: it.name_en,
           name_ar: it.name_ar,
           unit: it.unit,
           cost_price: it.cost_price,
           selling_price: it.selling_price,
-          quantity: it.quantity,
+          quantity: it.qty,
+          vat_rate: it.vat_rate,
           vat_amount: lineVat,
-          line_total: lineTot,
-          source_device: 'MOBILE',
-          is_synced: 0
+          line_total: lineTotal
         };
       });
 
-      try {
-        const { error: invErr } = await sbClient.from('invoices').insert(invRecord);
-        if (invErr) throw invErr;
+      const subtotal = Number((totalInc - totalVat).toFixed(2));
+      const now = new Date();
+      const invDate = now.toISOString().slice(0, 10);
+      const invTime = now.toTimeString().slice(0, 8);
+      const prefix = isSaleReturn ? 'RET-M-' : 'INV-M-';
+      const invNo = prefix + Date.now().toString().slice(-6);
 
-        const { error: itemErr } = await sbClient.from('invoice_items').insert(itemsRecords);
-        if (itemErr) throw itemErr;
+      const prevBal = selectedSaleCustomer ? Number(selectedSaleCustomer.current_balance || 0) : 0;
+      const creditAmt = payMethod === 'CREDIT' ? totalInc : 0;
+      const netBal = isSaleReturn ? prevBal - creditAmt : prevBal + creditAmt;
 
-        for (const it of cart) {
-          const prod = productsList.find(p => p.id === it.product_id);
-          if (prod) {
-            const delta = isReturn ? it.quantity : -it.quantity;
-            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + delta).toFixed(2));
-            await sbClient.from('products').update({ stock_quantity: newQty, is_synced: 0 }).eq('id', it.product_id);
-          }
+      const { data: invData, error: invErr } = await sb.from('invoices').insert({
+        invoice_no: invNo,
+        invoice_type: selectedSaleCustomer?.vat_number ? 'standard' : 'simplified',
+        is_return: isSaleReturn ? 1 : 0,
+        party_id: selectedSaleCustomer ? selectedSaleCustomer.id : null,
+        customer_name: selectedSaleCustomer ? selectedSaleCustomer.name_en : 'Walk-in Customer',
+        customer_phone: selectedSaleCustomer ? selectedSaleCustomer.phone : '',
+        customer_vat: selectedSaleCustomer ? selectedSaleCustomer.vat_number : '',
+        invoice_date: invDate,
+        invoice_time: invTime,
+        subtotal: subtotal,
+        vat_amount: Number(totalVat.toFixed(2)),
+        total_amount: Number(totalInc.toFixed(2)),
+        payment_method: payMethod,
+        paid_cash: payMethod === 'CASH' ? totalInc : 0,
+        paid_bank: payMethod === 'BANK' ? totalInc : 0,
+        paid_credit: creditAmt,
+        prev_balance: prevBal,
+        net_balance: netBal,
+        source_device: 'MOBILE'
+      }).select('id').single();
+
+      if (invErr) throw invErr;
+
+      const finalItems = itemsPayload.map(i => ({ ...i, invoice_id: invData.id }));
+      await sb.from('invoice_items').insert(finalItems);
+
+      // Update Stock on Supabase
+      for (const it of itemsPayload) {
+        const p = allProducts.find(x => x.id === it.product_id);
+        if (p) {
+          const newStock = isSaleReturn ? Number(p.stock_quantity) + it.quantity : Number(p.stock_quantity) - it.quantity;
+          await sb.from('products').update({ stock_quantity: newStock }).eq('id', p.id);
         }
-
-        if (activeParty && isCredit) {
-          const balDelta = isReturn ? -netTotal : netTotal;
-          const newBal = Number(((parseFloat(activeParty.current_balance) || 0) + balDelta).toFixed(2));
-          await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
-          await sbClient.from('ledger').insert({
-            id: uniqueId + 50,
-            party_id: activeParty.id,
-            transaction_date: invDate,
-            type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
-            reference_no: invoiceNo,
-            debit: isReturn ? 0 : Number(netTotal.toFixed(2)),
-            credit: isReturn ? Number(netTotal.toFixed(2)) : 0,
-            balance_after: newBal,
-            notes: `Mobile POS (${invoiceNo})`,
-            source_device: 'MOBILE',
-            is_synced: 0
-          });
-        }
-
-        if (action === 'thermal' || action === 'a4') {
-          try {
-            await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ invoiceId: uniqueId, template: action === 'a4' ? 'a4' : '80mm' })
-            });
-            alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്ററിലേക്ക് അയച്ചു! [${invoiceNo}]`);
-          } catch (e) {
-            alert(`✅ ബിൽ ക്ലൗഡിൽ സേവ് ആയി! [${invoiceNo}]`);
-          }
-        } else if (action === 'whatsapp') {
-          const phone = activeParty && activeParty.phone ? activeParty.phone : '';
-          await shareInvoiceAsImage(uniqueId, { ...invRecord, items: itemsRecords }, phone);
-        } else {
-          alert(`✅ ബിൽ വിജയകരമായി സേവ് ചെയ്തു! [${invoiceNo}]`);
-        }
-
-        clearCart();
-        document.getElementById('partySearchInput').value = '';
-        activeParty = null;
-        document.getElementById('partyQuickAction').style.display = 'none';
-        await loadInitialData();
-      } catch (err) {
-        alert('Cloud Save Error: ' + err.message);
-      } finally {
-        setCheckoutButtonsDisabled(false);
-      }
-    }
-
-    async function executePurchaseSave() {
-      if (isSaving) return;
-      if (cart.length === 0) { alert('Purchase cart is empty!'); return; }
-      const suppBill = document.getElementById('inputSuppBillNo').value.trim();
-      if (!suppBill) {
-        alert('ദയവായി സപ്ലയർ ബിൽ നമ്പർ (Supplier Bill No) നൽകുക.');
-        document.getElementById('inputSuppBillNo').focus();
-        return;
       }
 
-      isSaving = true;
-      const uniqueId = Date.now();
-      const purDate = new Date().toISOString().slice(0, 10);
-      const netTotal = cart.reduce((sum, it) => sum + (it.quantity * it.selling_price), 0);
-      const baseExcl = netTotal / 1.15;
-      const vatAmt = netTotal - baseExcl;
-      const isCredit = (selectedPayMethod === 'CREDIT');
-
-      try {
-        const { error: pErr } = await sbClient.from('purchases').insert({
-          id: uniqueId,
-          purchase_no: `PUR-M-${String(uniqueId).slice(-5)}`,
-          supplier_inv_no: suppBill,
-          purchase_date: purDate,
-          party_id: activeParty ? activeParty.id : null,
-          vendor_name: activeParty ? activeParty.name_en : 'CASH SUPPLIER',
-          subtotal: Number(baseExcl.toFixed(2)),
-          vat_amount: Number(vatAmt.toFixed(2)),
-          total_amount: Number(netTotal.toFixed(2)),
-          payment_method: selectedPayMethod,
-          paid_cash: isCredit ? 0 : Number(netTotal.toFixed(2)),
-          paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
-          source_device: 'MOBILE',
-          is_synced: 0
+      // Update Party Balance & Ledger if Credit
+      if (selectedSaleCustomer && creditAmt > 0) {
+        await sb.from('parties').update({ current_balance: netBal }).eq('id', selectedSaleCustomer.id);
+        await sb.from('ledger').insert({
+          party_id: selectedSaleCustomer.id,
+          entry_date: invDate,
+          entry_type: isSaleReturn ? 'SALES_RETURN' : 'INVOICE',
+          reference_no: invNo,
+          description: isSaleReturn ? 'Mobile Sales Return' : 'Mobile Credit Sale',
+          debit: isSaleReturn ? 0 : creditAmt,
+          credit: isSaleReturn ? creditAmt : 0,
+          balance_after: netBal,
+          payment_mode: 'CREDIT',
+          source_device: 'MOBILE'
         });
-        if (pErr) throw pErr;
+      }
 
-        for (let i = 0; i < cart.length; i++) {
-          const it = cart[i];
-          const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
-          const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
-          await sbClient.from('purchase_items').insert({
-            id: uniqueId + i + 1,
-            purchase_id: uniqueId,
-            product_id: it.product_id,
-            barcode: it.barcode,
-            name_en: it.name_en,
-            quantity: it.quantity,
-            cost_price: it.selling_price,
-            vat_amount: lineVat,
-            line_total: lineTot,
-            is_synced: 0
-          });
-          const prod = productsList.find(p => p.id === it.product_id);
-          if (prod) {
-            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + it.quantity).toFixed(2));
-            await sbClient.from('products').update({ stock_quantity: newQty, cost_price: it.selling_price, is_synced: 0 }).eq('id', it.product_id);
-          }
+      alert('✅ Saved Successfully! Invoice: ' + invNo);
+      saleCart = [];
+      selectedSaleCustomer = null;
+      document.getElementById('saleCustomerSearch').value = '';
+      renderSaleCart();
+      await refreshAllData();
+    } catch (err) {
+      alert('Error saving sale: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      setSaleMode(isSaleReturn);
+    }
+  }
+
+  // =========================================================================
+  // PURCHASE ENTRY LOGIC
+  // =========================================================================
+  function populateVendors() {
+    const sel = document.getElementById('purVendorSelect');
+    const vendors = allParties.filter(p => p.party_type === 'vendor' || p.type === 'vendor');
+    sel.innerHTML = vendors.map(v => `<option value="${v.id}">${v.name_en}</option>`).join('');
+    if (vendors.length === 0) sel.innerHTML = '<option value="147">LOCAL CASH VENDOR</option>';
+  }
+
+  function filterPurItems(q) {
+    const dd = document.getElementById('purItemDropdown');
+    if (!q.trim()) { dd.style.display = 'none'; return; }
+    const ql = q.toLowerCase();
+    const matches = allProducts.filter(p =>
+      (p.barcode1 || '').toLowerCase().includes(ql) || (p.name_en || '').toLowerCase().includes(ql)
+    );
+    if (matches.length === 0) { dd.style.display = 'none'; return; }
+    dd.innerHTML = matches.slice(0, 15).map(p => `
+      <div class="dropdown-item" onclick="addPurItem(${p.id})">
+        <strong>${p.name_en}</strong> (Cost: ${Number(p.cost_price).toFixed(2)} | Stock: ${p.stock_quantity})
+      </div>
+    `).join('');
+    dd.style.display = 'block';
+  }
+
+  function addPurItem(prodId) {
+    const prod = allProducts.find(p => p.id === prodId);
+    if (!prod) return;
+    const existing = purCart.find(i => i.product_id === prodId);
+    if (existing) existing.qty += 1;
+    else {
+      purCart.push({
+        product_id: prod.id,
+        item_code: prod.item_code,
+        barcode: prod.barcode1,
+        name_en: prod.name_en,
+        name_ar: prod.name_ar || prod.name_en,
+        unit: prod.unit || 'PCS',
+        unit_cost: Number(prod.cost_price || 0),
+        selling_price: Number(prod.selling_price || 0),
+        vat_rate: Number(prod.vat_rate || 15),
+        qty: 1
+      });
+    }
+    document.getElementById('purItemSearch').value = '';
+    document.getElementById('purItemDropdown').style.display = 'none';
+    renderPurCart();
+  }
+
+  function renderPurCart() {
+    const list = document.getElementById('purCartList');
+    let grand = 0;
+    list.innerHTML = purCart.map((it, idx) => {
+      const lineTotal = it.unit_cost * it.qty * (1 + it.vat_rate / 100);
+      grand += lineTotal;
+      return `
+        <div class="cart-item">
+          <div style="flex:1;">
+            <div style="font-size:13px; font-weight:700;">${it.name_en}</div>
+            <div style="font-size:11px; color:var(--muted);">Cost: <input type="number" style="width:70px; padding:3px 6px; margin:0; display:inline;" value="${it.unit_cost}" onchange="purCart[${idx}].unit_cost=Number(this.value); renderPurCart();" /> x ${it.qty}</div>
+          </div>
+          <div class="qty-box">
+            <button class="qty-btn" onclick="purCart[${idx}].qty--; if(purCart[${idx}].qty<=0) purCart.splice(${idx},1); renderPurCart();">-</button>
+            <span>${it.qty}</span>
+            <button class="qty-btn" onclick="purCart[${idx}].qty++; renderPurCart();">+</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    document.getElementById('purGrandTotal').innerText = grand.toFixed(2) + ' SAR';
+  }
+
+  async function submitPurchase() {
+    if (purCart.length === 0) return alert('Add items first!');
+    const vendorId = Number(document.getElementById('purVendorSelect').value || 147);
+    const vendor = allParties.find(p => p.id === vendorId);
+    const payMode = document.getElementById('purPayMethod').value;
+    const supInv = document.getElementById('purSupplierInv').value.trim();
+
+    let sub = 0, vat = 0, total = 0;
+    const itemsPayload = purCart.map(it => {
+      const lineSub = Number((it.unit_cost * it.qty).toFixed(2));
+      const lineVat = Number((lineSub * (it.vat_rate / 100)).toFixed(2));
+      const lineTot = Number((lineSub + lineVat).toFixed(2));
+      sub += lineSub; vat += lineVat; total += lineTot;
+      return {
+        product_id: it.product_id, item_code: it.item_code, barcode: it.barcode,
+        name_en: it.name_en, name_ar: it.name_ar, unit: it.unit,
+        quantity: it.qty, unit_cost: it.unit_cost, cost_price: it.unit_cost,
+        vat_rate: it.vat_rate, vat_amount: lineVat,
+        total_line_amount: lineTot, line_total: lineTot, selling_price: it.selling_price
+      };
+    });
+
+    const now = new Date();
+    const pDate = now.toISOString().slice(0, 10);
+    const pTime = now.toTimeString().slice(0, 8);
+    const purNo = 'PUR-M-' + Date.now().toString().slice(-6);
+
+    try {
+      const { data: purData, error } = await sb.from('purchases').insert({
+        purchase_no: purNo, bill_number: supInv || purNo, supplier_inv_no: supInv,
+        vendor_id: vendorId, party_id: vendorId,
+        vendor_name: vendor ? vendor.name_en : 'LOCAL CASH VENDOR',
+        purchase_date: pDate, purchase_time: pTime,
+        subtotal: sub, vat_amount: vat, total_amount: total,
+        payment_type: payMode.toLowerCase(), payment_mode: payMode, payment_method: payMode,
+        paid_cash: payMode === 'CASH' ? total : 0,
+        paid_bank: payMode === 'BANK' ? total : 0,
+        paid_credit: payMode === 'CREDIT' ? total : 0,
+        source_device: 'MOBILE'
+      }).select('id').single();
+
+      if (error) throw error;
+      await sb.from('purchase_items').insert(itemsPayload.map(i => ({ ...i, purchase_id: purData.id })));
+
+      for (const it of itemsPayload) {
+        const p = allProducts.find(x => x.id === it.product_id);
+        if (p) {
+          await sb.from('products').update({
+            stock_quantity: Number(p.stock_quantity) + it.quantity,
+            cost_price: it.unit_cost
+          }).eq('id', p.id);
         }
-
-        alert(`🎉 Purchase Saved to Cloud! Bill: ${suppBill}`);
-        clearCart();
-        document.getElementById('inputSuppBillNo').value = '';
-        await loadInitialData();
-      } catch (e) {
-        alert('Purchase Save Error: ' + e.message);
-      } finally {
-        isSaving = false;
       }
-    }
 
-    function openPaymentVoucherModal() {
-      if (!activeParty) return;
-      document.getElementById('vPartyName').value = activeParty.name_en;
-      document.getElementById('vCurrentBal').value = `${(parseFloat(activeParty.current_balance) || 0).toFixed(2)} SAR`;
-      document.getElementById('vAmount').value = '';
-      document.getElementById('lblVoucherTitle').innerText = (mainMode === 'purchase') ? '🚚 Vendor Payment (പണം നൽകൽ)' : '💵 Customer Receipt (പണം സ്വീകരിക്കൽ)';
-      document.getElementById('paymentVoucherModal').style.display = 'flex';
-      setTimeout(() => document.getElementById('vAmount').focus(), 100);
-    }
-
-    function closePaymentVoucherModal() {
-      document.getElementById('paymentVoucherModal').style.display = 'none';
-    }
-
-    async function submitPartyPayment() {
-      const amt = parseFloat(document.getElementById('vAmount').value);
-      if (isNaN(amt) || amt <= 0) { alert('ദയവായി സാധുവായ തുക രേഖപ്പെടുത്തുക.'); return; }
-
-      const mode = document.getElementById('vPayMode').value;
-      const voucherType = (mainMode === 'purchase') ? 'PAYMENT' : 'RECEIPT';
-      const oldBal = parseFloat(activeParty.current_balance) || 0;
-      const newBal = Number((oldBal - amt).toFixed(2));
-
-      try {
-        await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
-        await sbClient.from('ledger').insert({
-          id: Date.now(),
-          party_id: activeParty.id,
-          transaction_date: new Date().toISOString().slice(0, 10),
-          type: voucherType,
-          reference_no: `VCH-M-${String(Date.now()).slice(-5)}`,
-          debit: voucherType === 'PAYMENT' ? amt : 0,
-          credit: voucherType === 'RECEIPT' ? amt : 0,
-          balance_after: newBal,
-          notes: `Mobile ${voucherType} (${mode})`,
-          source_device: 'MOBILE',
-          is_synced: 0
+      if (vendor && payMode === 'CREDIT') {
+        const newBal = Number(vendor.current_balance || 0) + total;
+        await sb.from('parties').update({ current_balance: newBal }).eq('id', vendor.id);
+        await sb.from('ledger').insert({
+          party_id: vendor.id, entry_date: pDate, entry_type: 'PURCHASE',
+          reference_no: purNo, description: 'Mobile Credit Purchase',
+          debit: 0, credit: total, balance_after: newBal, payment_mode: 'CREDIT', source_device: 'MOBILE'
         });
-
-        alert(`✅ വൗച്ചർ ക്ലൗഡിൽ സംരക്ഷിച്ചു! പുതിയ ബാലൻസ്: ${newBal.toFixed(2)} SAR`);
-        closePaymentVoucherModal();
-        await loadInitialData();
-        document.getElementById('partySearchInput').value = '';
-        document.getElementById('partyBalDisplay').innerText = 'Due: 0.00 SAR';
-        document.getElementById('partyQuickAction').style.display = 'none';
-      } catch (e) {
-        alert('Error: ' + e.message);
       }
+
+      alert('✅ Purchase Saved: ' + purNo);
+      purCart = [];
+      renderPurCart();
+      await refreshAllData();
+    } catch (err) {
+      alert('Error: ' + err.message);
     }
+  }
 
-    async function saveStockTake() {
-      if (!stockTargetItem) return;
-      const count = parseFloat(document.getElementById('inputPhysicalCount').value);
-      if (isNaN(count) || count < 0) { alert('ദയവായി സാധുവായ എണ്ണം നൽകുക.'); return; }
+  // =========================================================================
+  // CUSTOMER & VENDOR STATEMENT REPORTS
+  // =========================================================================
+  let currentReportParty = null;
+  let currentLedgerRows = [];
 
-      try {
-        const { error } = await sbClient.from('products').update({ stock_quantity: count, is_synced: 0 }).eq('id', stockTargetItem.id);
-        if (error) throw error;
-        alert(`✅ സ്റ്റോക്ക് അപ്‌ഡേറ്റ് ചെയ്തു: ${stockTargetItem.name_en} -> ${count}`);
-        stockTargetItem = null;
-        document.getElementById('stkItemName').innerText = 'Select an item above';
-        document.getElementById('inputPhysicalCount').value = '';
-        await loadInitialData();
-      } catch (e) {
-        alert('Error: ' + e.message);
-      }
+  function loadReportParties() {
+    const type = document.getElementById('repPartyType').value;
+    const filtered = allParties.filter(p => (p.party_type === type || p.type === type));
+    const sel = document.getElementById('repPartySelect');
+    sel.innerHTML = '<option value="">-- Select Party --</option>' +
+      filtered.map(p => `<option value="${p.id}">${p.name_en} (${Number(p.current_balance || 0).toFixed(2)})</option>`).join('');
+  }
+
+  async function loadPartyStatement() {
+    const id = Number(document.getElementById('repPartySelect').value);
+    if (!id) { document.getElementById('repSummaryBox').style.display = 'none'; return; }
+    currentReportParty = allParties.find(p => p.id === id);
+    document.getElementById('repSummaryBox').style.display = 'block';
+    document.getElementById('repBalanceVal').innerText = Number(currentReportParty.current_balance || 0).toFixed(2) + ' SAR';
+
+    const { data } = await sb.from('ledger').select('*').eq('party_id', id).order('id', { ascending: false }).limit(50);
+    currentLedgerRows = data || [];
+    const tbody = document.getElementById('repLedgerBody');
+    if (currentLedgerRows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No ledger transactions found</td></tr>';
+      return;
     }
+    tbody.innerHTML = currentLedgerRows.map(r => `
+      <tr>
+        <td>${r.entry_date || ''}</td>
+        <td><strong>${r.reference_no || r.entry_type}</strong><br><span style="color:var(--muted);font-size:10px;">${r.description || ''}</span></td>
+        <td style="color:var(--danger);">${Number(r.debit || 0).toFixed(2)}</td>
+        <td style="color:var(--success);">${Number(r.credit || 0).toFixed(2)}</td>
+        <td><strong>${Number(r.balance_after || 0).toFixed(2)}</strong></td>
+      </tr>
+    `).join('');
+  }
 
-    async function openRecentBillsModal() {
-      const modal = document.getElementById('recentBillsModal');
-      const listEl = document.getElementById('recentBillsList');
-      modal.style.display = 'flex';
-      listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Fetching recent bills...</div>';
+  function shareStatementWhatsApp() {
+    if (!currentReportParty) return;
+    const shop = storeSettings.company_name_en || activeShop.name;
+    let msg = `*${shop} - Account Statement*\n`;
+    msg += `Party: *${currentReportParty.name_en}*\n`;
+    msg += `Current Balance: *${Number(currentReportParty.current_balance || 0).toFixed(2)} SAR*\n\n`;
+    msg += `*Recent Transactions:*\n`;
+    currentLedgerRows.slice(0, 10).forEach(r => {
+      msg += `• ${r.entry_date}: ${r.reference_no || r.entry_type} | Dr:${r.debit} Cr:${r.credit} | Bal:${r.balance_after}\n`;
+    });
+    const phone = (currentReportParty.phone || '').replace(/[^0-9]/g, '');
+    const waUrl = phone ? `https://wa.me/${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, '_blank');
+  }
 
+  // =========================================================================
+  // RECENT INVOICES LIST
+  // =========================================================================
+  function renderRecentInvoices(invoices) {
+    const box = document.getElementById('recentInvoicesList');
+    if (invoices.length === 0) {
+      box.innerHTML = '<div style="font-size:12px; color:var(--muted);">No invoices yet.</div>';
+      return;
+    }
+    box.innerHTML = invoices.map(inv => `
+      <div class="cart-item">
+        <div>
+          <div style="font-weight:700; font-size:13px;">${inv.invoice_no} <span class="badge ${inv.is_return ? 'badge-red' : 'badge-green'}">${inv.is_return ? 'RETURN' : inv.payment_method}</span></div>
+          <div style="font-size:11px; color:var(--muted);">${inv.customer_name || 'Walk-in'} • ${inv.invoice_date} ${inv.invoice_time || ''}</div>
+        </div>
+        <div style="font-weight:800; color:var(--success);">${Number(inv.total_amount).toFixed(2)} SAR</div>
+      </div>
+    `).join('');
+  }
+
+  // =========================================================================
+  // NAVIGATION & BARCODE / SETUP QR SCANNER
+  // =========================================================================
+  function switchTab(tabId, btnEl) {
+    document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    btnEl.classList.add('active');
+  }
+
+  function openScanner(target) {
+    scanTarget = target;
+    document.getElementById('scannerModal').style.display = 'flex';
+    html5QrCode = new Html5Qrcode("qr-reader");
+    html5QrCode.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 180 } },
+      (decodedText) => {
+        closeScanner();
+        handleScanResult(decodedText);
+      },
+      () => {}
+    ).catch(err => {
+      alert('Camera error: ' + err);
+      closeScanner();
+    });
+  }
+
+  function closeScanner() {
+    document.getElementById('scannerModal').style.display = 'none';
+    if (html5QrCode) {
+      html5QrCode.stop().then(() => html5QrCode.clear()).catch(() => {});
+      html5QrCode = null;
+    }
+  }
+
+  function handleScanResult(code) {
+    if (scanTarget === 'shop_qr') {
+      // Expected QR JSON: {"name":"Shop Name","pin":"1234","url":"https://...","key":"eyJ..."}
       try {
-        const { data, error } = await sbClient
-          .from('invoices')
-          .select('*')
-          .order('id', { ascending: false })
-          .limit(20);
-
-        if (error) throw error;
-        if (data && data.length > 0) {
-          listEl.innerHTML = '';
-          data.forEach(inv => {
-            const div = document.createElement('div');
-            div.className = 'bill-item';
-            div.innerHTML = `
-              <div class="bill-info">
-                <b>${inv.invoice_no}</b>
-                <small>${inv.invoice_date} ${inv.invoice_time || ''} | ${inv.customer_name || 'Walk-in'}</small>
-                <span style="font-weight:900; color:#38bdf8; font-size:13px;">${Number(inv.total_amount || 0).toFixed(2)} SAR</span>
-                <span style="font-size:10.5px; color:#a78bfa; margin-left:6px;">[${inv.payment_method}]</span>
-              </div>
-              <div class="bill-actions">
-                <button class="btn-reprint" onclick="reprintBill(${inv.id})">🖨️ Print</button>
-                <button class="btn-wa-reprint" onclick="shareRecentBillImage(${inv.id})">📲 WA Image</button>
-              </div>
-            `;
-            listEl.appendChild(div);
-          });
-        } else {
-          listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">No recent bills found.</div>';
+        const cfg = JSON.parse(code);
+        if (cfg.url && cfg.key) {
+          document.getElementById('cfgShopName').value = cfg.name || 'My Shop';
+          document.getElementById('cfgPin').value = cfg.pin || '1234';
+          document.getElementById('cfgUrl').value = cfg.url;
+          document.getElementById('cfgKey').value = cfg.key;
+          alert('QR Scanned! Click "Save Shop Profile" to confirm.');
         }
       } catch (e) {
-        listEl.innerHTML = `<div style="text-align:center; color:#f87171; padding:20px;">Failed to load bills: ${e.message}</div>`;
+        alert('Invalid Shop QR format!');
       }
+      return;
     }
 
-    function closeRecentBillsModal() {
-      document.getElementById('recentBillsModal').style.display = 'none';
-    }
+    const prod = allProducts.find(p => p.barcode1 === code || p.barcode2 === code || p.barcode3 === code || p.item_code === code);
+    if (!prod) return alert('Product not found for barcode: ' + code);
 
-    async function reprintBill(id) {
-      const cfg = getCloudConfig();
-      try {
-        await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceId: id, template: '80mm' })
-        });
-        alert('✅ Reprint command sent to Thermal Printer!');
-      } catch (e) {
-        alert('PC Local Printer Offline: ' + e.message);
-      }
-    }
-
-    async function shareRecentBillImage(id) {
-      const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
-      const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
-      if (inv) {
-        await shareInvoiceAsImage(id, { ...inv, items: items || [] });
-      }
-    }
-
-    async function shareInvoiceAsImage(invoiceId, inv, customPhone = '') {
-      try {
-        const store = storeSettings || {};
-        document.getElementById('rStoreName').innerText = store.company_name_en || 'RETAIL STORE';
-        document.getElementById('rStoreNameAr').innerText = store.company_name_ar || 'اسم المتجر';
-        document.getElementById('rStoreVat').innerText = store.vat_number || '300000000000003';
-        document.getElementById('rStoreAddr').innerText = store.city_en ? `${store.city_en}, Saudi Arabia` : 'Saudi Arabia';
-
-        document.getElementById('rInvNo').innerText = inv.invoice_no;
-        document.getElementById('rInvDate').innerText = `${inv.invoice_date} ${inv.invoice_time || ''}`;
-        document.getElementById('rCustName').innerText = inv.customer_name || 'WALK-IN CUSTOMER';
-
-        const tbody = document.getElementById('rItemsBody');
-        tbody.innerHTML = '';
-        (inv.items || []).forEach(it => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td>${it.name_en}</td>
-            <td style="text-align:center;">${it.quantity}</td>
-            <td style="text-align:right;">${Number(it.selling_price).toFixed(2)}</td>
-            <td style="text-align:right;">${Number(it.line_total).toFixed(2)}</td>
-          `;
-          tbody.appendChild(row);
-        });
-
-        document.getElementById('rSubtotal').innerText = Number(inv.subtotal).toFixed(2) + ' SAR';
-        document.getElementById('rVat').innerText = Number(inv.vat_amount).toFixed(2) + ' SAR';
-        document.getElementById('rNetTotal').innerText = Number(inv.total_amount).toFixed(2) + ' SAR';
-        document.getElementById('rPayMethod').innerText = inv.payment_method;
-
-        const qrContainer = document.getElementById('rQrCanvas');
-        qrContainer.innerHTML = '';
-        if (inv.zatca_qr && window.QRCode) {
-          new QRCode(qrContainer, {
-            text: inv.zatca_qr,
-            width: 140,
-            height: 140,
-            correctLevel: QRCode.CorrectLevel.M
-          });
-        }
-
-        await new Promise(r => setTimeout(r, 150));
-
-        const element = document.getElementById('hiddenReceiptCard');
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
-
-        canvas.toBlob(async (blob) => {
-          if (!blob) throw new Error('Canvas conversion failed');
-          const file = new File([blob], `${inv.invoice_no}.png`, { type: 'image/png' });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
-            try {
-              await navigator.share({
-                files: [file],
-                title: `Tax Invoice ${inv.invoice_no}`,
-                text: `Tax Invoice from ${store.company_name_en || 'STORE'}
-Invoice No: ${inv.invoice_no}
-Total: ${Number(inv.total_amount).toFixed(2)} SAR`
-              });
-            } catch (shareErr) {}
-          } else {
-            const link = document.createElement('a');
-            link.download = `${inv.invoice_no}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-
-            const ph = customPhone ? customPhone.replace(/[^0-9]/g, '') : '';
-            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}
-Total: ${Number(inv.total_amount).toFixed(2)} SAR`);
-            const waUrl = ph ? `https://wa.me/${ph}?text=${msg}` : `https://wa.me/?text=${msg}`;
-            window.open(waUrl, '_blank');
-          }
-        }, 'image/png');
-      } catch (err) {
-        showScanSuccessToast('Image generation error: ' + err.message, true);
-      }
-    }
-
-    function openServerConfigModal() {
-      const cfg = getCloudConfig();
-      document.getElementById('cfgSbUrl').value = cfg.sbUrl;
-      document.getElementById('cfgSbKey').value = cfg.sbKey;
-      document.getElementById('cfgServerIp').value = cfg.ip;
-      document.getElementById('cfgTerminalId').value = cfg.terminalId;
-      document.getElementById('serverModal').style.display = 'flex';
-    }
-
-    function closeServerConfigModal() {
-      document.getElementById('serverModal').style.display = 'none';
-    }
-
-    function saveServerConfig() {
-      const url = document.getElementById('cfgSbUrl').value.trim();
-      const key = document.getElementById('cfgSbKey').value.trim();
-      const ip = document.getElementById('cfgServerIp').value.trim();
-      const term = document.getElementById('cfgTerminalId').value.trim() || 'M1';
-
-      if (url) localStorage.setItem('sampos_sb_url', url);
-      if (key) localStorage.setItem('sampos_sb_key', key);
-      if (ip) localStorage.setItem('pos_mobile_server_ip', ip);
-      localStorage.setItem('pos_mobile_terminal_id', term);
-
-      initSupabase();
-      closeServerConfigModal();
-      loadInitialData(true);
-    }
-  </script>
+    if (scanTarget === 'sale') addSaleItem(prod.id);
+    else if (scanTarget === 'purchase') addPurItem(prod.id);
+  }
+</script>
 </body>
 </html>
