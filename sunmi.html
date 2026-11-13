@@ -317,7 +317,7 @@
 
   <script>
     var DEFAULT_SB_URL = 'https://kuaepkcztqwxufigxedh.supabase.co';
-    var DEFAULT_SB_KEY = 'sb_publishable_qX_T6777_1x3F0nO15B5sA_rO3sJ8L5';
+    var DEFAULT_SB_KEY = 'sb_publishable_-a-0l-DRJFM9ml2FhnSAxw_7lP1WCOt';
 
     var mainMode = 'sale';
     var subMode = 'normal';
@@ -338,12 +338,11 @@
     function getCloudConfig() {
       return {
         sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
-        sbKey: localStorage.getItem('sampos_sb_key') || DEFAULT_SB_KEY,
+        sbKey: DEFAULT_SB_KEY,
         terminalId: localStorage.getItem('sunmi_terminal_id') || 'S1'
       };
     }
 
-    // Direct Lightweight Supabase REST Helper (Works on older SUNMI Android WebView)
     function sbFetch(path, options) {
       options = options || {};
       var cfg = getCloudConfig();
@@ -422,7 +421,6 @@
       });
     }
 
-    // Bind Input Events Safely
     document.addEventListener('DOMContentLoaded', function() {
       if ('BarcodeDetector' in window) {
         try {
@@ -609,7 +607,6 @@
 
     function clearCart() { cart = []; renderCart(); }
 
-    // Camera Barcode Scanner
     function toggleCameraScanner() {
       var wrap = document.getElementById('scannerWrapper');
       if (wrap.style.display === 'block') {
