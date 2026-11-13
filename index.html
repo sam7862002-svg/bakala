@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>SAMPOS Mobile Floor Assistant</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0f172a; color: #f8fafc; padding: 10px; padding-bottom: 90px; }
+    .container { max-width: 640px; margin: 0 auto; }
+    
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 10px; background: #1e293b; padding: 8px 12px;
+      border-radius: 10px; border: 1px solid #334155;
+    }
+    .top-bar h2 { font-size: 14.5px; font-weight: 800; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+    .top-btns { display: flex; gap: 5px; align-items: center; }
+    .btn-icon { background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 9px; border-radius: 6px; font-size: 11.5px; font-weight: bold; cursor: pointer; text-decoration: none; }
+    .btn-icon:hover { background: #475569; }
+    .btn-recent { background: #8b5cf6; border-color: #a78bfa; color: #fff; }
+
+    .mode-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
+    .mode-btn {
+      background: #1e293b; border: 1px solid #475569; color: #94a3b8;
+      padding: 8px 2px; border-radius: 8px; font-size: 11.5px; font-weight: 800;
+      cursor: pointer; text-align: center; transition: all 0.2s;
+    }
+    .mode-btn.active { background: #2563eb; color: #fff; border-color: #60a5fa; box-shadow: 0 0 10px rgba(37,99,235,0.4); }
+
+    .submode-bar {
+      display: flex; gap: 6px; margin-bottom: 10px; background: #1e293b; padding: 6px; border-radius: 8px; border: 1px solid #334155;
+    }
+    .submode-btn {
+      flex: 1; padding: 6px; font-size: 12px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: #94a3b8;
+    }
+    .submode-btn.active { background: #0284c7; color: #fff; }
+
+    .card {
+      background: #1e293b; border-radius: 10px; border: 1px solid #334155;
+      padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+    .card-header { font-size: 13.5px; font-weight: 700; color: #38bdf8; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+
+    .action-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; position: relative; }
+    .search-input {
+      width: 100%; background: #0f172a; border: 1.5px solid #38bdf8; color: #fff;
+      padding: 10px 12px; border-radius: 8px; font-size: 13.5px; font-weight: bold; text-transform: uppercase;
+    }
+    .search-input:focus { outline: none; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
+    
+    .btn-camera {
+      background: #059669; color: #fff; border: none; padding: 10px 12px;
+      border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer;
+      display: flex; align-items: center; gap: 4px; white-space: nowrap;
+    }
+    .btn-camera:hover { background: #047857; }
+
+    .search-suggestions {
+      position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
+      border: 1px solid #38bdf8; border-radius: 8px; max-height: 240px;
+      overflow-y: auto; z-index: 100; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+    }
+    .suggestion-row {
+      padding: 8px 10px; border-bottom: 1px solid #1e293b; cursor: pointer;
+      display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;
+    }
+    .suggestion-row:hover { background: #1e293b; color: #38bdf8; }
+
+    #scannerWrapper {
+      display: none; position: relative; width: 100%; border-radius: 8px; overflow: hidden;
+      border: 2px solid #38bdf8; background: #000; margin-bottom: 10px;
+    }
+    #scannerVideo { width: 100%; height: 240px; object-fit: cover; display: block; }
+    .scanner-laser {
+      position: absolute; top: 50%; left: 8%; right: 8%; height: 2.5px; background: #ef4444;
+      box-shadow: 0 0 10px #ef4444; animation: scanAnim 1.6s infinite ease-in-out;
+    }
+    @keyframes scanAnim {
+      0% { top: 18%; }
+      50% { top: 82%; }
+      100% { top: 18%; }
+    }
+    .scan-guide-box {
+      position: absolute; top: 15%; bottom: 15%; left: 10%; right: 10%;
+      border: 2px dashed rgba(56, 189, 248, 0.8); border-radius: 8px; pointer-events: none;
+    }
+
+    #scanToast {
+      position: fixed; top: 62px; left: 50%; transform: translateX(-50%);
+      padding: 8px 18px; border-radius: 30px; font-weight: 800; font-size: 13px;
+      z-index: 9999; display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.6);
+      transition: all 0.25s; text-align: center; max-width: 90%;
+    }
+
+    .party-panel {
+      background: #0f172a; border: 1px solid #334155; border-radius: 8px;
+      padding: 8px 10px; margin-bottom: 8px; position: relative;
+    }
+    .party-bal { font-size: 13px; font-weight: 900; }
+    .bal-red { color: #f87171; }
+    .bal-green { color: #4ade80; }
+
+    .cart-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
+    .cart-table th { background: #0f172a; color: #94a3b8; padding: 6px 4px; text-align: left; font-size: 11px; }
+    .cart-table td { padding: 8px 4px; border-bottom: 1px solid #334155; }
+    .cart-qty-input { width: 48px; background: #0f172a; border: 1px solid #475569; color: #fff; text-align: center; padding: 6px 2px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+    .cart-price-input { width: 68px; background: #0f172a; border: 1px solid #475569; color: #f59e0b; text-align: right; padding: 6px 4px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+    .btn-del { color: #ef4444; background: none; border: none; font-size: 16px; cursor: pointer; padding: 0 4px; }
+
+    .summary-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-top: 10px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px; color: #94a3b8; }
+    .summary-row.total { font-size: 17px; font-weight: 900; color: #38bdf8; border-top: 1px solid #334155; padding-top: 6px; margin-top: 6px; }
+
+    .pay-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
+    .pay-btn {
+      padding: 10px 4px; font-size: 12px; font-weight: 800; border-radius: 6px; border: 1px solid #475569;
+      background: #0f172a; color: #94a3b8; cursor: pointer; text-align: center;
+    }
+    .pay-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
+
+    .checkout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+    .btn-checkout {
+      border: none; padding: 12px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: center; display: flex; align-items: center; justify-content: center; gap: 5px;
+    }
+    .btn-checkout:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-thermal { background: #16a34a; color: #fff; }
+    .btn-a4 { background: #0284c7; color: #fff; }
+    .btn-noprint { background: #475569; color: #fff; }
+    .btn-whatsapp { background: #25d366; color: #000; font-weight: 900; }
+
+    .modal-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85);
+      display: none; align-items: center; justify-content: center; z-index: 1000; padding: 12px;
+    }
+    .modal-card {
+      background: #1e293b; border: 1px solid #38bdf8; border-radius: 12px;
+      padding: 16px; width: 100%; max-width: 480px; max-height: 85vh; display: flex; flex-direction: column;
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .modal-body { overflow-y: auto; flex: 1; }
+    .form-group { margin-bottom: 10px; }
+    .form-group label { display: block; font-size: 11.5px; color: #94a3b8; margin-bottom: 4px; font-weight: bold; }
+    .form-input {
+      width: 100%; background: #0f172a; border: 1px solid #475569; color: #fff;
+      padding: 8px 10px; border-radius: 6px; font-size: 13.5px; font-weight: bold;
+    }
+    .btn-primary { width: 100%; background: #2563eb; color: #fff; border: none; padding: 11px; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
+
+    .bill-item {
+      background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px;
+      margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .bill-info b { font-size: 13.5px; color: #38bdf8; }
+    .bill-info small { color: #94a3b8; font-size: 11.5px; display: block; margin-top: 2px; }
+    .bill-actions { display: flex; gap: 4px; }
+    .btn-reprint { background: #059669; color: #fff; border: none; padding: 6px 9px; border-radius: 5px; font-size: 11.5px; cursor: pointer; font-weight: bold; }
+    .btn-wa-reprint { background: #25d366; color: #000; border: none; padding: 6px 9px; border-radius: 5px; font-size: 11.5px; cursor: pointer; font-weight: bold; }
+
+    .stock-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 10px; }
+
+    #hiddenReceiptCard {
+      position: absolute; left: -9999px; top: 0; width: 380px;
+      background: #ffffff; color: #000000; padding: 16px; font-family: monospace, sans-serif;
+      border: 1px solid #ddd;
+    }
+    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+    .rcpt-header h2 { font-size: 17px; margin-bottom: 2px; }
+    .rcpt-header p { font-size: 11px; margin: 1px 0; }
+    .rcpt-meta { font-size: 11px; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
+    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
+    .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
+    .rcpt-table td { padding: 4px 2px; }
+    .rcpt-totals { border-top: 1px dashed #000; padding-top: 6px; font-size: 12px; margin-bottom: 10px; }
+    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
+    .rcpt-qr { text-align: center; margin-top: 10px; }
+    .rcpt-footer { text-align: center; font-size: 10px; margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+  <div id="scanToast"></div>
+
+  <div class="container">
+    <div class="top-bar">
+      <h2>📱 SAMPOS Cloud Mobile</h2>
+      <div class="top-btns">
+        <button class="btn-icon btn-recent" onclick="openRecentBillsModal()">📜 Recent</button>
+        <button class="btn-icon" onclick="loadInitialData(true)">🔄 Sync</button>
+        <button class="btn-icon" onclick="openServerConfigModal()">⚙️</button>
+      </div>
+    </div>
+
+    <!-- Mode Selector -->
+    <div class="mode-selector">
+      <button class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales</button>
+      <button class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
+      <button class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock Take</button>
+      <button class="mode-btn" onclick="openServerConfigModal()">☁️ Cloud</button>
+    </div>
+
+    <!-- Sub-mode Selector for Return / Normal -->
+    <div class="submode-bar" id="submodeBar">
+      <button class="submode-btn active" id="submodeNormal" onclick="setSubmode('normal')">⚡ Normal Billing</button>
+      <button class="submode-btn" id="submodeReturn" onclick="setSubmode('return')">🔄 Return / Refund</button>
+    </div>
+
+    <!-- Party Card: Customer or Supplier -->
+    <div class="card" id="partyCard">
+      <div class="card-header">
+        <span id="partyHeaderTitle">👤 Customer (ക്രെഡിറ്റ് / കസ്റ്റമർ)</span>
+        <span class="party-bal" id="partyBalDisplay">Due: 0.00 SAR</span>
+      </div>
+      <div class="party-panel">
+        <div style="position: relative;">
+          <input type="text" id="partySearchInput" class="form-input" placeholder="Type Name or Phone / തിരഞ്ഞെടുക്കുക..." oninput="handlePartySearch(this.value)">
+          <div id="partySuggestions" class="search-suggestions"></div>
+        </div>
+        <div id="partyQuickAction" style="display:none; margin-top:6px; justify-content:flex-end;">
+          <button class="btn-icon" style="background:#0284c7; padding:4px 10px; font-size:11px;" onclick="openPaymentVoucherModal()">💵 വരവ് / പേയ്‌മെന്റ് നൽകാൻ</button>
+        </div>
+      </div>
+
+      <div id="suppBillGroup" style="display:none; margin-top: 6px;">
+        <label style="font-size: 11px; color: #94a3b8; font-weight: bold;">Supplier Bill No (ബിൽ നമ്പർ) *</label>
+        <input type="text" id="inputSuppBillNo" class="form-input" placeholder="e.g. 84591">
+      </div>
+    </div>
+
+    <!-- Barcode Scan & Search Card -->
+    <div class="card">
+      <div class="card-header">
+        <span id="scanHeaderTitle">🔍 Search or Scan Barcode / QR</span>
+        <span id="serverStatusBadge" style="font-size:11px; color:#f59e0b;">⏳ Connecting...</span>
+      </div>
+
+      <div class="action-grid">
+        <div style="position: relative;">
+          <input type="text" id="itemSearchInput" class="search-input" placeholder="🔍 Barcode OR Item Name..." oninput="handleItemSearch(this.value)" onkeydown="handleItemKeyDown(event)">
+          <div id="itemSuggestions" class="search-suggestions"></div>
+        </div>
+        <button class="btn-camera" onclick="toggleCameraScanner()" id="btnCamToggle">📷 Scan</button>
+        <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;" onchange="handleImageBarcodeScan(this)">
+      </div>
+
+      <div id="scannerWrapper">
+        <video id="scannerVideo" playsinline autoplay muted></video>
+        <div class="scanner-laser"></div>
+        <div class="scan-guide-box"></div>
+      </div>
+
+      <!-- Stock Take Module Box -->
+      <div id="stockTakeBox" style="display:none;" class="stock-box">
+        <div style="font-size: 14px; font-weight: bold; color: #38bdf8;" id="stkItemName">Scan or search an item above</div>
+        <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; color:#94a3b8;">
+          <span>Barcode: <b id="stkBarcode" style="color:#fff;">--</b></span>
+          <span>PLU: <b id="stkPlu" style="color:#fff;">--</b></span>
+        </div>
+        <div style="margin-top:8px; border-top:1px solid #334155; padding-top:8px; display:flex; justify-content:space-between;">
+          <span>Current System Stock: <b id="stkCurrentStock" style="color:#4ade80; font-size:15px;">0</b></span>
+        </div>
+        <div style="margin-top:10px;">
+          <label style="font-size:11.5px; color:#94a3b8; font-weight:bold;">Rack Physical Count (റാക്കിലെ യഥാർത്ഥ എണ്ണം):</label>
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            <input type="number" id="inputPhysicalCount" class="form-input" style="font-size:16px; text-align:center; font-weight:bold;" onclick="this.select()" onfocus="this.select()">
+            <button class="btn-primary" style="width:120px;" onclick="saveStockTake()">💾 Update</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cart Card -->
+    <div class="card" id="cartCard">
+      <div class="card-header">
+        <span>🛒 Bill Cart Items (<span id="cartCount">0</span>)</span>
+        <button onclick="clearCart()" style="background:none; border:none; color:#f87171; font-size:12px; cursor:pointer; font-weight:bold;">🗑️ Clear</button>
+      </div>
+
+      <table class="cart-table">
+        <thead>
+          <tr>
+            <th>Item & Cost(Inc.VAT)</th>
+            <th style="text-align:center;">Qty</th>
+            <th style="text-align:right;">Price</th>
+            <th style="text-align:right;">Total</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="cartTableBody">
+          <tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Cart is empty. Scan items to add.</td></tr>
+        </tbody>
+      </table>
+
+      <!-- Summary -->
+      <div class="summary-box">
+        <div class="summary-row">
+          <span>Subtotal (Excl. VAT):</span>
+          <span id="lblSubtotal">0.00 SAR</span>
+        </div>
+        <div class="summary-row">
+          <span>VAT (15%):</span>
+          <span id="lblVat">0.00 SAR</span>
+        </div>
+        <div class="summary-row total">
+          <span>NET TOTAL:</span>
+          <span id="lblNetTotal">0.00 SAR</span>
+        </div>
+      </div>
+
+      <!-- Payment Method Selection -->
+      <div class="pay-methods" id="payMethodSection">
+        <button class="pay-btn active" id="payBtnCash" onclick="setPaymentMethod('CASH')">💵 CASH</button>
+        <button class="pay-btn" id="payBtnCard" onclick="setPaymentMethod('BANK')">💳 CARD/BANK</button>
+        <button class="pay-btn" id="payBtnCredit" onclick="setPaymentMethod('CREDIT')">📑 CREDIT</button>
+      </div>
+
+      <!-- Checkout Action Buttons -->
+      <div class="checkout-grid" id="checkoutSection">
+        <button class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🖨️ Save & Print (80mm)</button>
+        <button class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 Save & A4</button>
+        <button class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save to Cloud/PC</button>
+        <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp Image</button>
+      </div>
+
+      <!-- Purchase Save Button -->
+      <div id="purchaseActionSection" style="display:none; margin-top:12px;">
+        <button class="btn-primary" style="background:#059669; padding:14px; font-size:15px;" onclick="executePurchaseSave()">📦 Save Purchase / സംരക്ഷിക്കുക</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Bills Modal -->
+  <div class="modal-overlay" id="recentBillsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 style="color:#a78bfa; font-size:15px;">📜 Recent Invoices / മുൻ ബില്ലുകൾ</h3>
+        <button onclick="closeRecentBillsModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✖</button>
+      </div>
+      <div class="modal-body" id="recentBillsList">
+        <div style="text-align:center; color:#94a3b8; padding:20px;">Loading recent bills...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Voucher Modal -->
+  <div class="modal-overlay" id="paymentVoucherModal">
+    <div class="modal-card">
+      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;" id="lblVoucherTitle">💵 Payment / Receipt Entry</h3>
+      <div class="form-group">
+        <label>Selected Party / കസ്റ്റമർ / സപ്ലയർ:</label>
+        <input type="text" id="vPartyName" class="form-input" readonly style="color:#38bdf8; background:#0f172a;">
+      </div>
+      <div class="form-group">
+        <label>Current Outstanding Balance / ബാക്കി തുക:</label>
+        <input type="text" id="vCurrentBal" class="form-input" readonly style="color:#f59e0b; background:#0f172a;">
+      </div>
+      <div class="form-group">
+        <label>Amount Received / നൽകിയ തുക (SAR) *:</label>
+        <input type="number" step="0.01" id="vAmount" class="form-input" placeholder="0.00" onclick="this.select()" onfocus="this.select()">
+      </div>
+      <div class="form-group">
+        <label>Payment Mode / പണം നൽകിയ രീതി:</label>
+        <select id="vPayMode" class="form-input">
+          <option value="CASH">CASH (കൗണ്ടർ ക്യാഷ്)</option>
+          <option value="BANK">BANK / CARD (ബാങ്ക് അക്കൗണ്ട്)</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="submitPartyPayment()">💾 Save Voucher Entry</button>
+      <button class="btn-icon" style="width:100%; margin-top:8px;" onclick="closePaymentVoucherModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Cloud & Local Printer Configuration Modal -->
+  <div class="modal-overlay" id="serverModal">
+    <div class="modal-card">
+      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;">☁️ Supabase Cloud & Local Print Setup</h3>
+      <div class="form-group">
+        <label>Supabase Project URL:</label>
+        <input type="text" id="cfgSbUrl" class="form-input" placeholder="https://xxxx.supabase.co">
+      </div>
+      <div class="form-group">
+        <label>Supabase Anon Key:</label>
+        <input type="text" id="cfgSbKey" class="form-input" placeholder="sb_publishable_...">
+      </div>
+      <div class="form-group">
+        <label>Shop Local PC IP (പ്രിന്ററിന് മാത്രം - ഓപ്ഷണൽ):</label>
+        <input type="text" id="cfgServerIp" class="form-input" placeholder="192.168.100.141">
+      </div>
+      <div class="form-group">
+        <label>Mobile Terminal Prefix:</label>
+        <input type="text" id="cfgTerminalId" class="form-input" placeholder="M1">
+      </div>
+      <button class="btn-primary" onclick="saveServerConfig()">💾 Save & Connect Cloud</button>
+      <button class="btn-icon" style="width:100%; margin-top:8px;" onclick="closeServerConfigModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- HIDDEN OFF-SCREEN INVOICE RENDERING CONTAINER -->
+  <div id="hiddenReceiptCard">
+    <div class="rcpt-header">
+      <h2 id="rStoreName">STORE NAME</h2>
+      <p id="rStoreNameAr">اسم المتجر</p>
+      <p>VAT No / الرقم الضريبي: <span id="rStoreVat">300000000000003</span></p>
+      <p id="rStoreAddr">Saudi Arabia</p>
+      <p style="font-weight:bold; margin-top:4px;">SIMPLIFIED TAX INVOICE / فاتورة ضريبية مبسطة</p>
+    </div>
+    <div class="rcpt-meta">
+      <div style="display:flex; justify-content:space-between;">
+        <span>Invoice No: <b id="rInvNo">INV-001</b></span>
+        <span id="rInvDate">2026-11-13</span>
+      </div>
+      <div style="margin-top:2px;">Customer: <span id="rCustName">WALK-IN CUSTOMER</span></div>
+    </div>
+    <table class="rcpt-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="text-align:center;">Qty</th>
+          <th style="text-align:right;">Price</th>
+          <th style="text-align:right;">Total</th>
+        </tr>
+      </thead>
+      <tbody id="rItemsBody"></tbody>
+    </table>
+    <div class="rcpt-totals">
+      <div class="rcpt-tot-row"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00 SAR</span></div>
+      <div class="rcpt-tot-row"><span>VAT (15%):</span><span id="rVat">0.00 SAR</span></div>
+      <div class="rcpt-tot-row grand"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
+      <div class="rcpt-tot-row" style="margin-top:4px;"><span>Payment:</span><span id="rPayMethod">CASH</span></div>
+    </div>
+    <div class="rcpt-qr">
+      <div id="rQrCanvas" style="display:inline-block;"></div>
+    </div>
+    <div class="rcpt-footer">
+      <p>Thank You For Shopping With Us / شكراً لزيارتكم</p>
+    </div>
+  </div>
+
+  <script>
+    const DEFAULT_SB_URL = 'https://kuaepkcztqwxufigxedh.supabase.co';
+    const DEFAULT_SB_KEY = 'sb_publishable_qX_T6777_1x3F0nO15B5sA_rO3sJ8L5';
+
+    let sbClient = null;
+    let isSaving = false;
+
+    function getCloudConfig() {
+      return {
+        sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
+        sbKey: localStorage.getItem('sampos_sb_key') || DEFAULT_SB_KEY,
+        ip: localStorage.getItem('pos_mobile_server_ip') || window.location.hostname || '192.168.100.141',
+        port: localStorage.getItem('pos_mobile_server_port') || '6060',
+        terminalId: localStorage.getItem('pos_mobile_terminal_id') || 'M1'
+      };
+    }
+
+    function initSupabase() {
+      const cfg = getCloudConfig();
+      if (window.supabase && cfg.sbUrl && cfg.sbKey) {
+        sbClient = window.supabase.createClient(cfg.sbUrl, cfg.sbKey);
+      }
+    }
+
+    // ZATCA Base64 TLV QR Generator
+    function generateZatcaQrBase64(sellerName, vatNumber, timestamp, totalWithVat, vatTotal) {
+      function toTLV(tag, value) {
+        const encoder = new TextEncoder();
+        const valBytes = encoder.encode(String(value));
+        const buf = new Uint8Array(2 + valBytes.length);
+        buf[0] = tag;
+        buf[1] = valBytes.length;
+        buf.set(valBytes, 2);
+        return buf;
+      }
+      const b1 = toTLV(1, sellerName || 'STORE');
+      const b2 = toTLV(2, vatNumber || '300000000000003');
+      const b3 = toTLV(3, timestamp);
+      const b4 = toTLV(4, Number(totalWithVat).toFixed(2));
+      const b5 = toTLV(5, Number(vatTotal).toFixed(2));
+
+      const combined = new Uint8Array(b1.length + b2.length + b3.length + b4.length + b5.length);
+      let offset = 0;
+      [b1, b2, b3, b4, b5].forEach(arr => { combined.set(arr, offset); offset += arr.length; });
+
+      let binary = '';
+      for (let i = 0; i < combined.length; i++) binary += String.fromCharCode(combined[i]);
+      return btoa(binary);
+    }
+
+    let mainMode = 'sale';
+    let subMode = 'normal';
+    let selectedPayMethod = 'CASH';
+
+    let productsList = [];
+    let customersList = [];
+    let vendorsList = [];
+    let storeSettings = {};
+
+    let activeParty = null;
+    let cart = [];
+    let stockTargetItem = null;
+
+    let videoStream = null;
+    let barcodeDetector = null;
+    let scanAnimFrame = null;
+
+    window.onload = async () => {
+      initSupabase();
+      if ('BarcodeDetector' in window) {
+        try {
+          barcodeDetector = new BarcodeDetector({
+            formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code']
+          });
+        } catch (e) {}
+      }
+      await loadInitialData();
+    };
+
+    // Fetch all 5,323+ products in paginated chunks from Supabase
+    async function fetchAllProducts() {
+      let all = [];
+      let from = 0;
+      const step = 1000;
+      while (true) {
+        const { data, error } = await sbClient
+          .from('products')
+          .select('*')
+          .order('id', { ascending: true })
+          .range(from, from + step - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all = all.concat(data);
+        if (data.length < step) break;
+        from += step;
+      }
+      return all;
+    }
+
+    async function loadInitialData(showToast = false) {
+      try {
+        if (!sbClient) initSupabase();
+        document.getElementById('serverStatusBadge').innerHTML = '⏳ Syncing...';
+        document.getElementById('serverStatusBadge').style.color = '#f59e0b';
+
+        const [prods, partiesRes, setRes] = await Promise.all([
+          fetchAllProducts(),
+          sbClient.from('parties').select('*').order('name_en', { ascending: true }),
+          sbClient.from('settings').select('*').eq('id', 1).maybeSingle()
+        ]);
+
+        if (partiesRes.error) throw partiesRes.error;
+
+        productsList = prods || [];
+        const allParties = partiesRes.data || [];
+        customersList = allParties.filter(p => (p.type || '').toLowerCase() === 'customer' || !p.type);
+        vendorsList = allParties.filter(p => (p.type || '').toLowerCase() === 'vendor' || (p.type || '').toLowerCase() === 'supplier');
+        if (setRes.data) storeSettings = setRes.data;
+
+        document.getElementById('serverStatusBadge').innerHTML = `🟢 Cloud (${productsList.length})`;
+        document.getElementById('serverStatusBadge').style.color = '#4ade80';
+        if (showToast) showScanSuccessToast(`✅ ${productsList.length} പ്രോഡക്റ്റുകൾ സിങ്ക് ചെയ്തു`);
+      } catch (err) {
+        document.getElementById('serverStatusBadge').innerHTML = '🔴 Offline';
+        document.getElementById('serverStatusBadge').style.color = '#f87171';
+        if (showToast) showScanSuccessToast('Sync Error: ' + err.message, true);
+      }
+    }
+
+    function switchMainMode(mode) {
+      mainMode = mode;
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      if (mode === 'sale') document.getElementById('modeSale').classList.add('active');
+      if (mode === 'purchase') document.getElementById('modePurchase').classList.add('active');
+      if (mode === 'stock') document.getElementById('modeStock').classList.add('active');
+
+      const partyCard = document.getElementById('partyCard');
+      const cartCard = document.getElementById('cartCard');
+      const submodeBar = document.getElementById('submodeBar');
+      const suppBillGroup = document.getElementById('suppBillGroup');
+      const stockTakeBox = document.getElementById('stockTakeBox');
+      const checkoutSection = document.getElementById('checkoutSection');
+      const purchaseActionSection = document.getElementById('purchaseActionSection');
+      const payMethodSection = document.getElementById('payMethodSection');
+      const partyQuickAction = document.getElementById('partyQuickAction');
+
+      activeParty = null;
+      document.getElementById('partySearchInput').value = '';
+      document.getElementById('partyBalDisplay').innerText = 'Due: 0.00 SAR';
+      partyQuickAction.style.display = 'none';
+
+      if (mode === 'sale') {
+        submodeBar.style.display = 'flex';
+        partyCard.style.display = 'block';
+        cartCard.style.display = 'block';
+        suppBillGroup.style.display = 'none';
+        stockTakeBox.style.display = 'none';
+        checkoutSection.style.display = 'grid';
+        payMethodSection.style.display = 'grid';
+        purchaseActionSection.style.display = 'none';
+        document.getElementById('partyHeaderTitle').innerText = '👤 Customer (ക്രെഡിറ്റ് / കസ്റ്റമർ)';
+        setPaymentMethod('CASH');
+      } else if (mode === 'purchase') {
+        submodeBar.style.display = 'flex';
+        partyCard.style.display = 'block';
+        cartCard.style.display = 'block';
+        suppBillGroup.style.display = 'block';
+        stockTakeBox.style.display = 'none';
+        checkoutSection.style.display = 'none';
+        payMethodSection.style.display = 'grid';
+        purchaseActionSection.style.display = 'block';
+        document.getElementById('partyHeaderTitle').innerText = '🚚 Supplier / Vendor (സപ്ലയർ)';
+        setPaymentMethod('CREDIT');
+      } else if (mode === 'stock') {
+        submodeBar.style.display = 'none';
+        partyCard.style.display = 'none';
+        cartCard.style.display = 'none';
+        stockTakeBox.style.display = 'block';
+      }
+      clearCart();
+    }
+
+    function setSubmode(sub) {
+      subMode = sub;
+      document.getElementById('submodeNormal').classList.toggle('active', sub === 'normal');
+      document.getElementById('submodeReturn').classList.toggle('active', sub === 'return');
+      renderCart();
+    }
+
+    function setPaymentMethod(pm) {
+      selectedPayMethod = pm;
+      document.getElementById('payBtnCash').classList.toggle('active', pm === 'CASH');
+      document.getElementById('payBtnCard').classList.toggle('active', pm === 'BANK');
+      document.getElementById('payBtnCredit').classList.toggle('active', pm === 'CREDIT');
+    }
+
+    function handlePartySearch(query) {
+      const q = query.trim().toUpperCase();
+      const dd = document.getElementById('partySuggestions');
+      const qa = document.getElementById('partyQuickAction');
+      if (!q) { dd.style.display = 'none'; activeParty = null; qa.style.display = 'none'; return; }
+
+      const list = (mainMode === 'purchase') ? vendorsList : customersList;
+      const matches = list.filter(p => (p.name_en || '').toUpperCase().includes(q) || (p.phone && p.phone.includes(q))).slice(0, 12);
+
+      dd.innerHTML = '';
+      matches.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-row';
+        div.innerHTML = `<div><b>${p.name_en}</b><br><small style="color:#94a3b8;">${p.phone || ''}</small></div><div><b style="color:#f59e0b;">${(parseFloat(p.current_balance) || 0).toFixed(2)} SAR</b></div>`;
+        div.onclick = () => {
+          activeParty = p;
+          document.getElementById('partySearchInput').value = p.name_en;
+          dd.style.display = 'none';
+          const bal = parseFloat(p.current_balance) || 0;
+          document.getElementById('partyBalDisplay').innerText = `Bal: ${bal.toFixed(2)} SAR`;
+          document.getElementById('partyBalDisplay').className = 'party-bal ' + (bal > 0 ? 'bal-red' : 'bal-green');
+          setPaymentMethod('CREDIT');
+          qa.style.display = 'flex';
+        };
+        dd.appendChild(div);
+      });
+      dd.style.display = matches.length > 0 ? 'block' : 'none';
+    }
+
+    function handleItemSearch(query) {
+      const q = query.trim().toUpperCase();
+      const dd = document.getElementById('itemSuggestions');
+      if (!q) { dd.style.display = 'none'; return; }
+
+      const matches = productsList.filter(p => 
+        (p.name_en || '').toUpperCase().includes(q) || 
+        (p.barcode1 && p.barcode1.toUpperCase().includes(q)) || 
+        (p.barcode2 && p.barcode2.toUpperCase().includes(q)) ||
+        (p.item_code && p.item_code.toUpperCase().includes(q))
+      ).slice(0, 15);
+
+      dd.innerHTML = '';
+      matches.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-row';
+        const baseCost = parseFloat(p.cost_price) || 0;
+        const costWithVat = (baseCost * 1.15).toFixed(2);
+        const priceToShow = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
+
+        div.innerHTML = `
+          <div>
+            <b>${p.name_en}</b><br>
+            <small style="color:#94a3b8;">Barcode: ${p.barcode1 || ''} | <span style="color:#a78bfa; font-weight:bold;">Cost(Inc.VAT): ${costWithVat}</span> | Stock: ${p.stock_quantity || 0}</small>
+          </div>
+          <div><b style="color:#38bdf8;">${priceToShow.toFixed(2)} SAR</b></div>
+        `;
+        div.onclick = () => {
+          addItemToCartOrStock(p);
+          document.getElementById('itemSearchInput').value = '';
+          dd.style.display = 'none';
+        };
+        dd.appendChild(div);
+      });
+      dd.style.display = matches.length > 0 ? 'block' : 'none';
+    }
+
+    function handleItemKeyDown(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const code = e.target.value.trim().toUpperCase();
+        if (!code) return;
+        const found = productsList.find(p => p.barcode1 === code || p.barcode2 === code || p.item_code === code);
+        if (found) {
+          addItemToCartOrStock(found);
+          e.target.value = '';
+          document.getElementById('itemSuggestions').style.display = 'none';
+        } else {
+          showScanSuccessToast('Item not found for code: ' + code, true);
+        }
+      }
+    }
+
+    function addItemToCartOrStock(p) {
+      if (mainMode === 'stock') {
+        stockTargetItem = p;
+        document.getElementById('stkItemName').innerText = p.name_en;
+        document.getElementById('stkBarcode').innerText = p.barcode1 || '--';
+        document.getElementById('stkPlu').innerText = p.item_code || '--';
+        document.getElementById('stkCurrentStock').innerText = p.stock_quantity || 0;
+        document.getElementById('inputPhysicalCount').value = p.stock_quantity || 0;
+        document.getElementById('inputPhysicalCount').focus();
+        return;
+      }
+
+      const exist = cart.find(it => it.product_id === p.id);
+      const defaultPrice = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
+      if (exist) {
+        exist.quantity += 1;
+      } else {
+        cart.push({
+          product_id: p.id,
+          barcode: p.barcode1 || '',
+          name_en: p.name_en,
+          name_ar: p.name_ar || '',
+          unit: p.unit || 'PCS',
+          cost_price: parseFloat(p.cost_price) || 0,
+          cost_with_vat: ((parseFloat(p.cost_price) || 0) * 1.15).toFixed(2),
+          selling_price: defaultPrice,
+          quantity: 1
+        });
+      }
+      renderCart();
+    }
+
+    function renderCart() {
+      const tbody = document.getElementById('cartTableBody');
+      tbody.innerHTML = '';
+      let subtotal = 0;
+
+      if (cart.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Cart is empty. Scan items to add.</td></tr>';
+        document.getElementById('lblSubtotal').innerText = '0.00 SAR';
+        document.getElementById('lblVat').innerText = '0.00 SAR';
+        document.getElementById('lblNetTotal').innerText = '0.00 SAR';
+        document.getElementById('cartCount').innerText = '0';
+        return;
+      }
+
+      cart.forEach((it, idx) => {
+        const lineTot = it.quantity * it.selling_price;
+        subtotal += lineTot;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <b>${it.name_en}</b><br>
+            <small style="color:#a78bfa; font-weight:bold;">Cost(Inc.VAT): ${it.cost_with_vat} SAR</small>
+          </td>
+          <td style="text-align:center;">
+            <input type="number" step="any" class="cart-qty-input" value="${it.quantity}" 
+                   onclick="this.select()" onfocus="this.select()" onchange="updateCartQty(${idx}, this.value)">
+          </td>
+          <td style="text-align:right;">
+            <input type="number" step="0.01" class="cart-price-input" value="${it.selling_price.toFixed(2)}" 
+                   onclick="this.select()" onfocus="this.select()" onchange="updateCartPrice(${idx}, this.value)">
+          </td>
+          <td style="text-align:right; font-weight:bold; color:#38bdf8;">
+            ${lineTot.toFixed(2)}
+          </td>
+          <td style="text-align:center;">
+            <button class="btn-del" onclick="removeCartItem(${idx})">×</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const netTotal = subtotal;
+      const baseExcl = subtotal / 1.15;
+      const vatAmt = subtotal - baseExcl;
+
+      document.getElementById('cartCount').innerText = cart.length;
+      document.getElementById('lblSubtotal').innerText = baseExcl.toFixed(2) + ' SAR';
+      document.getElementById('lblVat').innerText = vatAmt.toFixed(2) + ' SAR';
+      document.getElementById('lblNetTotal').innerText = netTotal.toFixed(2) + ' SAR';
+    }
+
+    function updateCartQty(idx, val) {
+      const q = parseFloat(val);
+      if (q > 0) cart[idx].quantity = q;
+      else cart.splice(idx, 1);
+      renderCart();
+    }
+
+    function updateCartPrice(idx, val) {
+      const p = parseFloat(val);
+      if (!isNaN(p) && p >= 0) cart[idx].selling_price = p;
+      renderCart();
+    }
+
+    function removeCartItem(idx) {
+      cart.splice(idx, 1);
+      renderCart();
+    }
+
+    function clearCart() {
+      cart = [];
+      renderCart();
+    }
+
+    // LIVE CAMERA BARCODE & QR SCANNER (SINGLE SCAN & AUTO-CLOSE)
+    async function toggleCameraScanner() {
+      const wrap = document.getElementById('scannerWrapper');
+      if (wrap.style.display === 'block') {
+        stopCameraScanner();
+      } else {
+        await startCameraScanner();
+      }
+    }
+
+    async function startCameraScanner() {
+      const wrap = document.getElementById('scannerWrapper');
+      const video = document.getElementById('scannerVideo');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        document.getElementById('cameraFileInput').click();
+        return;
+      }
+
+      try {
+        videoStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        video.srcObject = videoStream;
+        await video.play();
+        wrap.style.display = 'block';
+        document.getElementById('btnCamToggle').innerText = '⏹️ Cancel';
+
+        const scanLoop = async () => {
+          if (!videoStream || video.readyState !== video.HAVE_ENOUGH_DATA) {
+            scanAnimFrame = requestAnimationFrame(scanLoop);
+            return;
+          }
+
+          if (barcodeDetector) {
+            try {
+              const barcodes = await barcodeDetector.detect(video);
+              if (barcodes.length > 0) {
+                const code = barcodes[0].rawValue.trim().toUpperCase();
+                if (navigator.vibrate) navigator.vibrate(80);
+                stopCameraScanner();
+                handleDetectedBarcode(code);
+                return;
+              }
+            } catch (err) {}
+          }
+          scanAnimFrame = requestAnimationFrame(scanLoop);
+        };
+
+        scanAnimFrame = requestAnimationFrame(scanLoop);
+      } catch (err) {
+        stopCameraScanner();
+        document.getElementById('cameraFileInput').click();
+      }
+    }
+
+    function stopCameraScanner() {
+      if (scanAnimFrame) {
+        cancelAnimationFrame(scanAnimFrame);
+        scanAnimFrame = null;
+      }
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
+      }
+      document.getElementById('scannerWrapper').style.display = 'none';
+      document.getElementById('btnCamToggle').innerText = '📷 Scan';
+    }
+
+    function handleDetectedBarcode(code) {
+      const found = productsList.find(p => p.barcode1 === code || p.barcode2 === code || p.item_code === code);
+      if (found) {
+        addItemToCartOrStock(found);
+        showScanSuccessToast(`✅ ${found.name_en} ചേർത്തു`);
+      } else {
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        showScanSuccessToast(`❌ ബാർകോഡ് കണ്ടെത്തിയില്ല: ${code}`, true);
+      }
+    }
+
+    function showScanSuccessToast(msg, isError = false) {
+      const toast = document.getElementById('scanToast');
+      toast.style.background = isError ? '#ef4444' : '#10b981';
+      toast.style.color = '#fff';
+      toast.innerText = msg;
+      toast.style.display = 'block';
+      setTimeout(() => { toast.style.display = 'none'; }, 1500);
+    }
+
+    async function handleImageBarcodeScan(input) {
+      if (!input.files || input.files.length === 0) return;
+      const file = input.files[0];
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      img.onload = async () => {
+        if (barcodeDetector) {
+          try {
+            const detected = await barcodeDetector.detect(img);
+            if (detected.length > 0) {
+              const code = detected[0].rawValue.trim().toUpperCase();
+              handleDetectedBarcode(code);
+            } else {
+              showScanSuccessToast('ബാർകോഡ് കണ്ടെത്താനായില്ല.', true);
+            }
+          } catch (e) {
+            showScanSuccessToast('Scan error: ' + e.message, true);
+          }
+        }
+      };
+    }
+
+    function setCheckoutButtonsDisabled(disabled) {
+      isSaving = disabled;
+      document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
+    }
+
+    // SAVE INVOICE DIRECTLY TO SUPABASE (AUTO-SYNCS TO PC SAMPOS)
+    async function executeCheckout(action) {
+      if (isSaving) return;
+      if (cart.length === 0) { alert('Cart is empty!'); return; }
+
+      if (selectedPayMethod === 'CREDIT' && !activeParty) {
+        alert('ക്രെഡിറ്റ് (Credit) നൽകാൻ ദയവായി ഒരു കസ്റ്റമറെ തിരഞ്ഞെടുക്കുക.');
+        return;
+      }
+
+      setCheckoutButtonsDisabled(true);
+
+      const cfg = getCloudConfig();
+      const now = new Date();
+      const invDate = now.toISOString().slice(0, 10);
+      const invTime = now.toTimeString().slice(0, 8);
+      const isoTimestamp = now.toISOString();
+
+      const netTotal = cart.reduce((sum, it) => sum + (it.quantity * it.selling_price), 0);
+      const baseExcl = netTotal / 1.15;
+      const vatAmt = netTotal - baseExcl;
+      const customName = document.getElementById('partySearchInput').value.trim();
+      const isCredit = (selectedPayMethod === 'CREDIT');
+      const isReturn = (subMode === 'return') ? 1 : 0;
+
+      const uniqueId = Date.now();
+      const invoiceNo = `${cfg.terminalId}-${String(uniqueId).slice(-6)}`;
+      const zatcaQr = generateZatcaQrBase64(
+        storeSettings.company_name_en || 'RETAIL STORE',
+        storeSettings.vat_number || '300000000000003',
+        isoTimestamp,
+        netTotal,
+        vatAmt
+      );
+
+      const invRecord = {
+        id: uniqueId,
+        invoice_no: invoiceNo,
+        terminal_id: cfg.terminalId,
+        invoice_date: invDate,
+        invoice_time: invTime,
+        is_return: isReturn,
+        party_id: activeParty ? activeParty.id : null,
+        customer_name: activeParty ? activeParty.name_en : (customName || 'WALK-IN CUSTOMER'),
+        customer_phone: activeParty ? activeParty.phone : null,
+        customer_vat: activeParty ? activeParty.vat_number : null,
+        subtotal: Number(baseExcl.toFixed(2)),
+        vat_amount: Number(vatAmt.toFixed(2)),
+        total_amount: Number(netTotal.toFixed(2)),
+        payment_method: selectedPayMethod,
+        paid_cash: isCredit ? 0 : (selectedPayMethod === 'CASH' ? Number(netTotal.toFixed(2)) : 0),
+        paid_bank: isCredit ? 0 : (selectedPayMethod === 'BANK' ? Number(netTotal.toFixed(2)) : 0),
+        paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
+        zatca_qr: zatcaQr,
+        source_device: 'MOBILE',
+        is_synced: 0
+      };
+
+      const itemsRecords = cart.map((it, i) => {
+        const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
+        const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
+        return {
+          id: uniqueId + i + 1,
+          invoice_id: uniqueId,
+          product_id: it.product_id,
+          barcode: it.barcode,
+          name_en: it.name_en,
+          name_ar: it.name_ar,
+          unit: it.unit,
+          cost_price: it.cost_price,
+          selling_price: it.selling_price,
+          quantity: it.quantity,
+          vat_amount: lineVat,
+          line_total: lineTot,
+          source_device: 'MOBILE',
+          is_synced: 0
+        };
+      });
+
+      try {
+        // 1. Insert Invoice & Items to Supabase
+        const { error: invErr } = await sbClient.from('invoices').insert(invRecord);
+        if (invErr) throw invErr;
+
+        const { error: itemErr } = await sbClient.from('invoice_items').insert(itemsRecords);
+        if (itemErr) throw itemErr;
+
+        // 2. Update Product Stock in Supabase
+        for (const it of cart) {
+          const prod = productsList.find(p => p.id === it.product_id);
+          if (prod) {
+            const delta = isReturn ? it.quantity : -it.quantity;
+            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + delta).toFixed(2));
+            await sbClient.from('products').update({ stock_quantity: newQty, is_synced: 0 }).eq('id', it.product_id);
+          }
+        }
+
+        // 3. Update Party Balance & Ledger if Credit
+        if (activeParty && isCredit) {
+          const balDelta = isReturn ? -netTotal : netTotal;
+          const newBal = Number(((parseFloat(activeParty.current_balance) || 0) + balDelta).toFixed(2));
+          await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
+          await sbClient.from('ledger').insert({
+            id: uniqueId + 50,
+            party_id: activeParty.id,
+            transaction_date: invDate,
+            type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
+            reference_no: invoiceNo,
+            debit: isReturn ? 0 : Number(netTotal.toFixed(2)),
+            credit: isReturn ? Number(netTotal.toFixed(2)) : 0,
+            balance_after: newBal,
+            notes: `Mobile POS (${invoiceNo})`,
+            source_device: 'MOBILE',
+            is_synced: 0
+          });
+        }
+
+        // 4. Handle Print or WhatsApp Share
+        if (action === 'thermal' || action === 'a4') {
+          try {
+            await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ invoiceId: uniqueId, template: action === 'a4' ? 'a4' : '80mm' })
+            });
+            alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്ററിലേക്ക് അയച്ചു! [${invoiceNo}]`);
+          } catch (e) {
+            alert(`✅ ബിൽ ക്ലൗഡിൽ സേവ് ആയി! [${invoiceNo}]`);
+          }
+        } else if (action === 'whatsapp') {
+          const phone = activeParty && activeParty.phone ? activeParty.phone : '';
+          await shareInvoiceAsImage(uniqueId, { ...invRecord, items: itemsRecords }, phone);
+        } else {
+          alert(`✅ ബിൽ വിജയകരമായി സേവ് ചെയ്തു! [${invoiceNo}]`);
+        }
+
+        clearCart();
+        document.getElementById('partySearchInput').value = '';
+        activeParty = null;
+        document.getElementById('partyQuickAction').style.display = 'none';
+        await loadInitialData();
+      } catch (err) {
+        alert('Cloud Save Error: ' + err.message);
+      } finally {
+        setCheckoutButtonsDisabled(false);
+      }
+    }
+
+    // Purchase Save to Supabase
+    async function executePurchaseSave() {
+      if (isSaving) return;
+      if (cart.length === 0) { alert('Purchase cart is empty!'); return; }
+      const suppBill = document.getElementById('inputSuppBillNo').value.trim();
+      if (!suppBill) {
+        alert('ദയവായി സപ്ലയർ ബിൽ നമ്പർ (Supplier Bill No) നൽകുക.');
+        document.getElementById('inputSuppBillNo').focus();
+        return;
+      }
+
+      isSaving = true;
+      const uniqueId = Date.now();
+      const purDate = new Date().toISOString().slice(0, 10);
+      const netTotal = cart.reduce((sum, it) => sum + (it.quantity * it.selling_price), 0);
+      const baseExcl = netTotal / 1.15;
+      const vatAmt = netTotal - baseExcl;
+      const isCredit = (selectedPayMethod === 'CREDIT');
+
+      try {
+        const { error: pErr } = await sbClient.from('purchases').insert({
+          id: uniqueId,
+          purchase_no: `PUR-M-${String(uniqueId).slice(-5)}`,
+          supplier_inv_no: suppBill,
+          purchase_date: purDate,
+          party_id: activeParty ? activeParty.id : null,
+          vendor_name: activeParty ? activeParty.name_en : 'CASH SUPPLIER',
+          subtotal: Number(baseExcl.toFixed(2)),
+          vat_amount: Number(vatAmt.toFixed(2)),
+          total_amount: Number(netTotal.toFixed(2)),
+          payment_method: selectedPayMethod,
+          paid_cash: isCredit ? 0 : Number(netTotal.toFixed(2)),
+          paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
+          source_device: 'MOBILE',
+          is_synced: 0
+        });
+        if (pErr) throw pErr;
+
+        for (let i = 0; i < cart.length; i++) {
+          const it = cart[i];
+          const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
+          const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
+          await sbClient.from('purchase_items').insert({
+            id: uniqueId + i + 1,
+            purchase_id: uniqueId,
+            product_id: it.product_id,
+            barcode: it.barcode,
+            name_en: it.name_en,
+            quantity: it.quantity,
+            cost_price: it.selling_price,
+            vat_amount: lineVat,
+            line_total: lineTot,
+            is_synced: 0
+          });
+          const prod = productsList.find(p => p.id === it.product_id);
+          if (prod) {
+            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + it.quantity).toFixed(2));
+            await sbClient.from('products').update({ stock_quantity: newQty, cost_price: it.selling_price, is_synced: 0 }).eq('id', it.product_id);
+          }
+        }
+
+        alert(`🎉 Purchase Saved to Cloud! Bill: ${suppBill}`);
+        clearCart();
+        document.getElementById('inputSuppBillNo').value = '';
+        await loadInitialData();
+      } catch (e) {
+        alert('Purchase Save Error: ' + e.message);
+      } finally {
+        isSaving = false;
+      }
+    }
+
+    // Payment / Receipt Voucher Modal
+    function openPaymentVoucherModal() {
+      if (!activeParty) return;
+      document.getElementById('vPartyName').value = activeParty.name_en;
+      document.getElementById('vCurrentBal').value = `${(parseFloat(activeParty.current_balance) || 0).toFixed(2)} SAR`;
+      document.getElementById('vAmount').value = '';
+      document.getElementById('lblVoucherTitle').innerText = (mainMode === 'purchase') ? '🚚 Vendor Payment (പണം നൽകൽ)' : '💵 Customer Receipt (പണം സ്വീകരിക്കൽ)';
+      document.getElementById('paymentVoucherModal').style.display = 'flex';
+      setTimeout(() => document.getElementById('vAmount').focus(), 100);
+    }
+
+    function closePaymentVoucherModal() {
+      document.getElementById('paymentVoucherModal').style.display = 'none';
+    }
+
+    async function submitPartyPayment() {
+      const amt = parseFloat(document.getElementById('vAmount').value);
+      if (isNaN(amt) || amt <= 0) { alert('ദയവായി സാധുവായ തുക രേഖപ്പെടുത്തുക.'); return; }
+
+      const mode = document.getElementById('vPayMode').value;
+      const voucherType = (mainMode === 'purchase') ? 'PAYMENT' : 'RECEIPT';
+      const oldBal = parseFloat(activeParty.current_balance) || 0;
+      const newBal = Number((oldBal - amt).toFixed(2));
+
+      try {
+        await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
+        await sbClient.from('ledger').insert({
+          id: Date.now(),
+          party_id: activeParty.id,
+          transaction_date: new Date().toISOString().slice(0, 10),
+          type: voucherType,
+          reference_no: `VCH-M-${String(Date.now()).slice(-5)}`,
+          debit: voucherType === 'PAYMENT' ? amt : 0,
+          credit: voucherType === 'RECEIPT' ? amt : 0,
+          balance_after: newBal,
+          notes: `Mobile ${voucherType} (${mode})`,
+          source_device: 'MOBILE',
+          is_synced: 0
+        });
+
+        alert(`✅ വൗച്ചർ ക്ലൗഡിൽ സംരക്ഷിച്ചു! പുതിയ ബാലൻസ്: ${newBal.toFixed(2)} SAR`);
+        closePaymentVoucherModal();
+        await loadInitialData();
+        document.getElementById('partySearchInput').value = '';
+        document.getElementById('partyBalDisplay').innerText = 'Due: 0.00 SAR';
+        document.getElementById('partyQuickAction').style.display = 'none';
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // Stock Take Save
+    async function saveStockTake() {
+      if (!stockTargetItem) return;
+      const count = parseFloat(document.getElementById('inputPhysicalCount').value);
+      if (isNaN(count) || count < 0) { alert('ദയവായി സാധുവായ എണ്ണം നൽകുക.'); return; }
+
+      try {
+        const { error } = await sbClient.from('products').update({ stock_quantity: count, is_synced: 0 }).eq('id', stockTargetItem.id);
+        if (error) throw error;
+        alert(`✅ സ്റ്റോക്ക് അപ്‌ഡേറ്റ് ചെയ്തു: ${stockTargetItem.name_en} -> ${count}`);
+        stockTargetItem = null;
+        document.getElementById('stkItemName').innerText = 'Select an item above';
+        document.getElementById('inputPhysicalCount').value = '';
+        await loadInitialData();
+      } catch (e) {
+        alert('Error: ' + e.message);
+      }
+    }
+
+    // Recent Bills from Supabase
+    async function openRecentBillsModal() {
+      const modal = document.getElementById('recentBillsModal');
+      const listEl = document.getElementById('recentBillsList');
+      modal.style.display = 'flex';
+      listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Fetching recent bills...</div>';
+
+      try {
+        const { data, error } = await sbClient
+          .from('invoices')
+          .select('*')
+          .order('id', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+        if (data && data.length > 0) {
+          listEl.innerHTML = '';
+          data.forEach(inv => {
+            const div = document.createElement('div');
+            div.className = 'bill-item';
+            div.innerHTML = `
+              <div class="bill-info">
+                <b>${inv.invoice_no}</b>
+                <small>${inv.invoice_date} ${inv.invoice_time || ''} | ${inv.customer_name || 'Walk-in'}</small>
+                <span style="font-weight:900; color:#38bdf8; font-size:13px;">${Number(inv.total_amount || 0).toFixed(2)} SAR</span>
+                <span style="font-size:10.5px; color:#a78bfa; margin-left:6px;">[${inv.payment_method}]</span>
+              </div>
+              <div class="bill-actions">
+                <button class="btn-reprint" onclick="reprintBill(${inv.id})">🖨️ Print</button>
+                <button class="btn-wa-reprint" onclick="shareRecentBillImage(${inv.id})">📲 WA Image</button>
+              </div>
+            `;
+            listEl.appendChild(div);
+          });
+        } else {
+          listEl.innerHTML = '<div style="text-align:center; color:#64748b; padding:20px;">No recent bills found.</div>';
+        }
+      } catch (e) {
+        listEl.innerHTML = `<div style="text-align:center; color:#f87171; padding:20px;">Failed to load bills: ${e.message}</div>`;
+      }
+    }
+
+    function closeRecentBillsModal() {
+      document.getElementById('recentBillsModal').style.display = 'none';
+    }
+
+    async function reprintBill(id) {
+      const cfg = getCloudConfig();
+      try {
+        await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoiceId: id, template: '80mm' })
+        });
+        alert('✅ Reprint command sent to Thermal Printer!');
+      } catch (e) {
+        alert('PC Local Printer Offline: ' + e.message);
+      }
+    }
+
+    async function shareRecentBillImage(id) {
+      const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
+      const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
+      if (inv) {
+        await shareInvoiceAsImage(id, { ...inv, items: items || [] });
+      }
+    }
+
+    // SNAPSHOT INVOICE TO PNG AND SHARE VIA WHATSAPP
+    async function shareInvoiceAsImage(invoiceId, inv, customPhone = '') {
+      try {
+        const store = storeSettings || {};
+        document.getElementById('rStoreName').innerText = store.company_name_en || 'RETAIL STORE';
+        document.getElementById('rStoreNameAr').innerText = store.company_name_ar || 'اسم المتجر';
+        document.getElementById('rStoreVat').innerText = store.vat_number || '300000000000003';
+        document.getElementById('rStoreAddr').innerText = store.city_en ? `${store.city_en}, Saudi Arabia` : 'Saudi Arabia';
+
+        document.getElementById('rInvNo').innerText = inv.invoice_no;
+        document.getElementById('rInvDate').innerText = `${inv.invoice_date} ${inv.invoice_time || ''}`;
+        document.getElementById('rCustName').innerText = inv.customer_name || 'WALK-IN CUSTOMER';
+
+        const tbody = document.getElementById('rItemsBody');
+        tbody.innerHTML = '';
+        (inv.items || []).forEach(it => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${it.name_en}</td>
+            <td style="text-align:center;">${it.quantity}</td>
+            <td style="text-align:right;">${Number(it.selling_price).toFixed(2)}</td>
+            <td style="text-align:right;">${Number(it.line_total).toFixed(2)}</td>
+          `;
+          tbody.appendChild(row);
+        });
+
+        document.getElementById('rSubtotal').innerText = Number(inv.subtotal).toFixed(2) + ' SAR';
+        document.getElementById('rVat').innerText = Number(inv.vat_amount).toFixed(2) + ' SAR';
+        document.getElementById('rNetTotal').innerText = Number(inv.total_amount).toFixed(2) + ' SAR';
+        document.getElementById('rPayMethod').innerText = inv.payment_method;
+
+        const qrContainer = document.getElementById('rQrCanvas');
+        qrContainer.innerHTML = '';
+        if (inv.zatca_qr && window.QRCode) {
+          new QRCode(qrContainer, {
+            text: inv.zatca_qr,
+            width: 140,
+            height: 140,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        }
+
+        await new Promise(r => setTimeout(r, 150));
+
+        const element = document.getElementById('hiddenReceiptCard');
+        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+
+        canvas.toBlob(async (blob) => {
+          if (!blob) throw new Error('Canvas conversion failed');
+          const file = new File([blob], `${inv.invoice_no}.png`, { type: 'image/png' });
+
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: `Tax Invoice ${inv.invoice_no}`,
+                text: `Tax Invoice from ${store.company_name_en || 'STORE'}\nInvoice No: ${inv.invoice_no}\nTotal: ${Number(inv.total_amount).toFixed(2)} SAR`
+              });
+            } catch (shareErr) {}
+          } else {
+            const link = document.createElement('a');
+            link.download = `${inv.invoice_no}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+
+            const ph = customPhone ? customPhone.replace(/[^0-9]/g, '') : '';
+            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}\nTotal: ${Number(inv.total_amount).toFixed(2)} SAR`);
+            const waUrl = ph ? `https://wa.me/${ph}?text=${msg}` : `https://wa.me/?text=${msg}`;
+            window.open(waUrl, '_blank');
+          }
+        }, 'image/png');
+      } catch (err) {
+        showScanSuccessToast('Image generation error: ' + err.message, true);
+      }
+    }
+
+    function openServerConfigModal() {
+      const cfg = getCloudConfig();
+      document.getElementById('cfgSbUrl').value = cfg.sbUrl;
+      document.getElementById('cfgSbKey').value = cfg.sbKey;
+      document.getElementById('cfgServerIp').value = cfg.ip;
+      document.getElementById('cfgTerminalId').value = cfg.terminalId;
+      document.getElementById('serverModal').style.display = 'flex';
+    }
+
+    function closeServerConfigModal() {
+      document.getElementById('serverModal').style.display = 'none';
+    }
+
+    function saveServerConfig() {
+      const url = document.getElementById('cfgSbUrl').value.trim();
+      const key = document.getElementById('cfgSbKey').value.trim();
+      const ip = document.getElementById('cfgServerIp').value.trim();
+      const term = document.getElementById('cfgTerminalId').value.trim() || 'M1';
+
+      if (url) localStorage.setItem('sampos_sb_url', url);
+      if (key) localStorage.setItem('sampos_sb_key', key);
+      if (ip) localStorage.setItem('pos_mobile_server_ip', ip);
+      localStorage.setItem('pos_mobile_terminal_id', term);
+
+      initSupabase();
+      closeServerConfigModal();
+      loadInitialData(true);
+    }
+  </script>
+</body>
+</html>
