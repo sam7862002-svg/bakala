@@ -197,7 +197,6 @@
       </div>
     </div>
 
-    <!-- Mode Selector -->
     <div class="mode-selector">
       <button class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales</button>
       <button class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
@@ -205,13 +204,11 @@
       <button class="mode-btn" onclick="openServerConfigModal()">☁️ Cloud</button>
     </div>
 
-    <!-- Sub-mode Selector for Return / Normal -->
     <div class="submode-bar" id="submodeBar">
       <button class="submode-btn active" id="submodeNormal" onclick="setSubmode('normal')">⚡ Normal Billing</button>
       <button class="submode-btn" id="submodeReturn" onclick="setSubmode('return')">🔄 Return / Refund</button>
     </div>
 
-    <!-- Party Card: Customer or Supplier -->
     <div class="card" id="partyCard">
       <div class="card-header">
         <span id="partyHeaderTitle">👤 Customer (ക്രെഡിറ്റ് / കസ്റ്റമർ)</span>
@@ -233,7 +230,6 @@
       </div>
     </div>
 
-    <!-- Barcode Scan & Search Card -->
     <div class="card">
       <div class="card-header">
         <span id="scanHeaderTitle">🔍 Search or Scan Barcode / QR</span>
@@ -255,7 +251,6 @@
         <div class="scan-guide-box"></div>
       </div>
 
-      <!-- Stock Take Module Box -->
       <div id="stockTakeBox" style="display:none;" class="stock-box">
         <div style="font-size: 14px; font-weight: bold; color: #38bdf8;" id="stkItemName">Scan or search an item above</div>
         <div style="display:flex; justify-content:space-between; margin-top:4px; font-size:12px; color:#94a3b8;">
@@ -275,7 +270,6 @@
       </div>
     </div>
 
-    <!-- Cart Card -->
     <div class="card" id="cartCard">
       <div class="card-header">
         <span>🛒 Bill Cart Items (<span id="cartCount">0</span>)</span>
@@ -297,7 +291,6 @@
         </tbody>
       </table>
 
-      <!-- Summary -->
       <div class="summary-box">
         <div class="summary-row">
           <span>Subtotal (Excl. VAT):</span>
@@ -313,14 +306,12 @@
         </div>
       </div>
 
-      <!-- Payment Method Selection -->
       <div class="pay-methods" id="payMethodSection">
         <button class="pay-btn active" id="payBtnCash" onclick="setPaymentMethod('CASH')">💵 CASH</button>
         <button class="pay-btn" id="payBtnCard" onclick="setPaymentMethod('BANK')">💳 CARD/BANK</button>
         <button class="pay-btn" id="payBtnCredit" onclick="setPaymentMethod('CREDIT')">📑 CREDIT</button>
       </div>
 
-      <!-- Checkout Action Buttons -->
       <div class="checkout-grid" id="checkoutSection">
         <button class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🖨️ Save & Print (80mm)</button>
         <button class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 Save & A4</button>
@@ -328,7 +319,6 @@
         <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp Image</button>
       </div>
 
-      <!-- Purchase Save Button -->
       <div id="purchaseActionSection" style="display:none; margin-top:12px;">
         <button class="btn-primary" style="background:#059669; padding:14px; font-size:15px;" onclick="executePurchaseSave()">📦 Save Purchase / സംരക്ഷിക്കുക</button>
       </div>
@@ -466,6 +456,32 @@
       }
     }
 
+    // ZATCA Sequential Invoice Number Generator (e.g., M1-20261113-0001)
+    async function generateSequentialInvoiceNo(terminalId, invDate) {
+      const dateStr = invDate.replace(/-/g, '');
+      const prefix = `${terminalId}-${dateStr}-`;
+      try {
+        const { data } = await sbClient
+          .from('invoices')
+          .select('invoice_no')
+          .ilike('invoice_no', `${prefix}%`)
+          .order('invoice_no', { ascending: false })
+          .limit(1);
+
+        let nextNum = 1;
+        if (data && data.length > 0 && data[0].invoice_no) {
+          const parts = data[0].invoice_no.split('-');
+          const lastSeq = parseInt(parts[parts.length - 1], 10);
+          if (!isNaN(lastSeq)) nextNum = lastSeq + 1;
+        }
+        return `${prefix}${String(nextNum).padStart(4, '0')}`;
+      } catch (e) {
+        const fallbackSeq = parseInt(localStorage.getItem(`seq_${prefix}`) || '0', 10) + 1;
+        localStorage.setItem(`seq_${prefix}`, String(fallbackSeq));
+        return `${prefix}${String(fallbackSeq).padStart(4, '0')}`;
+      }
+    }
+
     // ZATCA Base64 TLV QR Generator
     function generateZatcaQrBase64(sellerName, vatNumber, timestamp, totalWithVat, vatTotal) {
       function toTLV(tag, value) {
@@ -521,7 +537,6 @@
       await loadInitialData();
     };
 
-    // Fetch all 5,323+ products in paginated chunks from Supabase
     async function fetchAllProducts() {
       let all = [];
       let from = 0;
@@ -826,7 +841,6 @@
       renderCart();
     }
 
-    // LIVE CAMERA BARCODE & QR SCANNER (SINGLE SCAN & AUTO-CLOSE)
     async function toggleCameraScanner() {
       const wrap = document.getElementById('scannerWrapper');
       if (wrap.style.display === 'block') {
@@ -947,7 +961,7 @@
       document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
     }
 
-    // SAVE INVOICE DIRECTLY TO SUPABASE (AUTO-SYNCS TO PC SAMPOS)
+    // SAVE INVOICE WITH ZATCA PHASE 2 SEQUENTIAL NUMBERING (M1-YYYYMMDD-0001)
     async function executeCheckout(action) {
       if (isSaving) return;
       if (cart.length === 0) { alert('Cart is empty!'); return; }
@@ -973,7 +987,7 @@
       const isReturn = (subMode === 'return') ? 1 : 0;
 
       const uniqueId = Date.now();
-      const invoiceNo = `${cfg.terminalId}-${String(uniqueId).slice(-6)}`;
+      const invoiceNo = await generateSequentialInvoiceNo(cfg.terminalId, invDate);
       const zatcaQr = generateZatcaQrBase64(
         storeSettings.company_name_en || 'RETAIL STORE',
         storeSettings.vat_number || '300000000000003',
@@ -1027,14 +1041,12 @@
       });
 
       try {
-        // 1. Insert Invoice & Items to Supabase
         const { error: invErr } = await sbClient.from('invoices').insert(invRecord);
         if (invErr) throw invErr;
 
         const { error: itemErr } = await sbClient.from('invoice_items').insert(itemsRecords);
         if (itemErr) throw itemErr;
 
-        // 2. Update Product Stock in Supabase
         for (const it of cart) {
           const prod = productsList.find(p => p.id === it.product_id);
           if (prod) {
@@ -1044,7 +1056,6 @@
           }
         }
 
-        // 3. Update Party Balance & Ledger if Credit
         if (activeParty && isCredit) {
           const balDelta = isReturn ? -netTotal : netTotal;
           const newBal = Number(((parseFloat(activeParty.current_balance) || 0) + balDelta).toFixed(2));
@@ -1064,7 +1075,6 @@
           });
         }
 
-        // 4. Handle Print or WhatsApp Share
         if (action === 'thermal' || action === 'a4') {
           try {
             await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
@@ -1095,7 +1105,6 @@
       }
     }
 
-    // Purchase Save to Supabase
     async function executePurchaseSave() {
       if (isSaving) return;
       if (cart.length === 0) { alert('Purchase cart is empty!'); return; }
@@ -1167,7 +1176,6 @@
       }
     }
 
-    // Payment / Receipt Voucher Modal
     function openPaymentVoucherModal() {
       if (!activeParty) return;
       document.getElementById('vPartyName').value = activeParty.name_en;
@@ -1218,7 +1226,6 @@
       }
     }
 
-    // Stock Take Save
     async function saveStockTake() {
       if (!stockTargetItem) return;
       const count = parseFloat(document.getElementById('inputPhysicalCount').value);
@@ -1237,7 +1244,6 @@
       }
     }
 
-    // Recent Bills from Supabase
     async function openRecentBillsModal() {
       const modal = document.getElementById('recentBillsModal');
       const listEl = document.getElementById('recentBillsList');
@@ -1305,7 +1311,6 @@
       }
     }
 
-    // SNAPSHOT INVOICE TO PNG AND SHARE VIA WHATSAPP
     async function shareInvoiceAsImage(invoiceId, inv, customPhone = '') {
       try {
         const store = storeSettings || {};
@@ -1361,7 +1366,9 @@
               await navigator.share({
                 files: [file],
                 title: `Tax Invoice ${inv.invoice_no}`,
-                text: `Tax Invoice from ${store.company_name_en || 'STORE'}\nInvoice No: ${inv.invoice_no}\nTotal: ${Number(inv.total_amount).toFixed(2)} SAR`
+                text: `Tax Invoice from ${store.company_name_en || 'STORE'}
+Invoice No: ${inv.invoice_no}
+Total: ${Number(inv.total_amount).toFixed(2)} SAR`
               });
             } catch (shareErr) {}
           } else {
@@ -1371,7 +1378,8 @@
             link.click();
 
             const ph = customPhone ? customPhone.replace(/[^0-9]/g, '') : '';
-            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}\nTotal: ${Number(inv.total_amount).toFixed(2)} SAR`);
+            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}
+Total: ${Number(inv.total_amount).toFixed(2)} SAR`);
             const waUrl = ph ? `https://wa.me/${ph}?text=${msg}` : `https://wa.me/?text=${msg}`;
             window.open(waUrl, '_blank');
           }
