@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <title>SAMPOS SUNMI V2s POS</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; padding: 8px; padding-bottom: 85px; }
@@ -21,10 +20,10 @@
     .btn-icon { background: #334155; color: #fff; border: 1px solid #475569; padding: 7px 9px; border-radius: 6px; font-size: 11px; font-weight: bold; cursor: pointer; }
     .btn-recent { background: #8b5cf6; border-color: #a78bfa; }
 
-    .mode-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 8px; }
+    .mode-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 8px; }
     .mode-btn {
       background: #1e293b; border: 1px solid #475569; color: #94a3b8;
-      padding: 9px 2px; border-radius: 8px; font-size: 11px; font-weight: 800;
+      padding: 9px 2px; border-radius: 8px; font-size: 10.5px; font-weight: 800;
       cursor: pointer; text-align: center;
     }
     .mode-btn.active { background: #2563eb; color: #fff; border-color: #60a5fa; }
@@ -118,6 +117,10 @@
       background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 9px;
       margin-bottom: 7px; display: flex; justify-content: space-between; align-items: center;
     }
+    .tag-preview {
+      background: #ffffff; color: #000000; border: 2px dashed #38bdf8; border-radius: 8px;
+      padding: 12px; text-align: center; margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -138,6 +141,7 @@
       <button type="button" class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sale</button>
       <button type="button" class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
       <button type="button" class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock</button>
+      <button type="button" class="mode-btn" id="modeTag" onclick="switchMainMode('tag')">🏷️ Tag</button>
       <button type="button" class="mode-btn" onclick="testSunmiJsPrint()">🖨️ Test</button>
     </div>
 
@@ -177,12 +181,30 @@
         <video id="scannerVideo" playsinline autoplay muted></video>
       </div>
 
+      <!-- Stock Take Box -->
       <div id="stockTakeBox" style="display:none; background:#0f172a; padding:10px; border-radius:8px; margin-top:6px;">
         <div style="font-size:14px; font-weight:bold; color:#38bdf8;" id="stkItemName">Search or scan item to update stock</div>
         <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Current Stock: <b id="stkCurrentStock" style="color:#4ade80; font-size:15px;">0</b></div>
         <div style="display:flex; gap:6px; margin-top:8px;">
           <input type="number" id="inputPhysicalCount" class="form-input" style="font-size:16px; text-align:center;" placeholder="New Qty">
           <button type="button" class="btn-primary" style="width:110px;" onclick="saveStockTake()">💾 Save</button>
+        </div>
+      </div>
+
+      <!-- Shelf Tag & Barcode Print Box -->
+      <div id="shelfTagBox" style="display:none; background:#0f172a; padding:10px; border-radius:8px; margin-top:6px;">
+        <div style="font-size:12.5px; font-weight:bold; color:#38bdf8;">🏷️ Shelf Tag & Barcode Printer</div>
+        <div class="tag-preview" id="tagPreviewArea">
+          <div style="font-size:15px; font-weight:800;" id="tagPrevName">Search or scan an item above</div>
+          <div style="font-size:26px; font-weight:900; margin:4px 0;" id="tagPrevPrice">0.00 SAR</div>
+          <div style="font-size:11px; color:#475569;">(Incl. 15% VAT)</div>
+          <div style="font-family:monospace; font-size:13px; font-weight:bold; margin-top:6px; letter-spacing:2px;" id="tagPrevBarcode">||||| |||| |||||</div>
+          <div style="font-size:11px; color:#334155; margin-top:2px;" id="tagPrevCode">Code: -</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <label style="font-size:12px; color:#94a3b8; font-weight:bold;">Copies:</label>
+          <input type="number" id="tagPrintQty" class="form-input" value="1" min="1" max="50" style="width:70px; text-align:center;">
+          <button type="button" class="btn-primary" style="background:#f97316; flex:1;" onclick="printSelectedShelfTag()">🏷️ Print Shelf Tag</button>
         </div>
       </div>
     </div>
@@ -246,11 +268,9 @@
   <!-- Settings Modal -->
   <div class="modal-overlay" id="serverModal">
     <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:10px; font-size:15px;">⚙️ SUNMI Terminal & Plugin Port</h3>
+      <h3 style="color:#38bdf8; margin-bottom:10px; font-size:15px;">⚙️ SUNMI Terminal Settings</h3>
       <label style="font-size:11px; color:#94a3b8;">Terminal ID (e.g. S1):</label>
       <input type="text" id="cfgTerminalId" class="form-input" style="margin-bottom:8px;">
-      <label style="font-size:11px; color:#94a3b8;">Sunmi Print Plugin Port (Default 8080):</label>
-      <input type="text" id="cfgPluginPort" class="form-input" style="margin-bottom:8px;" placeholder="8080">
       <label style="font-size:11px; color:#94a3b8;">Supabase URL:</label>
       <input type="text" id="cfgSbUrl" class="form-input" style="margin-bottom:8px;">
       <label style="font-size:11px; color:#94a3b8;">Supabase Key:</label>
@@ -274,6 +294,7 @@
     var activeParty = null;
     var cart = [];
     var stockTargetItem = null;
+    var tagTargetItem = null;
     var isSaving = false;
 
     var videoStream = null;
@@ -284,8 +305,7 @@
       return {
         sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
         sbKey: DEFAULT_SB_KEY,
-        terminalId: localStorage.getItem('sunmi_terminal_id') || 'S1',
-        pluginPort: localStorage.getItem('sunmi_plugin_port') || '8080'
+        terminalId: localStorage.getItem('sunmi_terminal_id') || 'S1'
       };
     }
 
@@ -394,16 +414,19 @@
     function switchMainMode(mode) {
       mainMode = mode;
       document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
-      document.getElementById(mode === 'sale' ? 'modeSale' : mode === 'purchase' ? 'modePurchase' : 'modeStock').classList.add('active');
+      var btnId = mode === 'sale' ? 'modeSale' : mode === 'purchase' ? 'modePurchase' : mode === 'stock' ? 'modeStock' : 'modeTag';
+      document.getElementById(btnId).classList.add('active');
 
       activeParty = null;
       document.getElementById('partySearchInput').value = '';
       document.getElementById('partyBalDisplay').innerText = 'Due: 0.00';
 
-      document.getElementById('submodeBar').style.display = mode === 'stock' ? 'none' : 'flex';
-      document.getElementById('partyCard').style.display = mode === 'stock' ? 'none' : 'block';
-      document.getElementById('cartCard').style.display = mode === 'stock' ? 'none' : 'block';
+      var isUtility = (mode === 'stock' || mode === 'tag');
+      document.getElementById('submodeBar').style.display = isUtility ? 'none' : 'flex';
+      document.getElementById('partyCard').style.display = isUtility ? 'none' : 'block';
+      document.getElementById('cartCard').style.display = isUtility ? 'none' : 'block';
       document.getElementById('stockTakeBox').style.display = mode === 'stock' ? 'block' : 'none';
+      document.getElementById('shelfTagBox').style.display = mode === 'tag' ? 'block' : 'none';
       document.getElementById('suppBillGroup').style.display = mode === 'purchase' ? 'block' : 'none';
       document.getElementById('checkoutSection').style.display = mode === 'sale' ? 'grid' : 'none';
       document.getElementById('purchaseActionSection').style.display = mode === 'purchase' ? 'block' : 'none';
@@ -499,6 +522,17 @@
     }
 
     function addItemToCartOrStock(p) {
+      if (mainMode === 'tag') {
+        tagTargetItem = p;
+        var priceVal = (parseFloat(p.selling_price) || 0).toFixed(2) + ' SAR';
+        var bCode = p.barcode1 || p.item_code || String(p.id);
+        var sCode = p.item_code || p.barcode1 || String(p.id);
+        document.getElementById('tagPrevName').innerText = p.name_en;
+        document.getElementById('tagPrevPrice').innerText = priceVal;
+        document.getElementById('tagPrevBarcode').innerText = '|||| ' + bCode + ' ||||';
+        document.getElementById('tagPrevCode').innerText = 'Code: ' + sCode;
+        return;
+      }
       if (mainMode === 'stock') {
         stockTargetItem = p;
         document.getElementById('stkItemName').innerText = p.name_en;
@@ -518,6 +552,27 @@
         });
       }
       renderCart();
+    }
+
+    function printSelectedShelfTag() {
+      if (!tagTargetItem) {
+        alert('ആദ്യം ഒരു സാധനം സെർച്ച് ചെയ്യുകയോ സ്കാൻ ചെയ്യുകയോ ചെയ്യുക!');
+        return;
+      }
+      var copies = parseInt(document.getElementById('tagPrintQty').value, 10) || 1;
+      var priceVal = (parseFloat(tagTargetItem.selling_price) || 0).toFixed(2) + ' SAR';
+      var bCode = tagTargetItem.barcode1 || tagTargetItem.item_code || String(tagTargetItem.id);
+      var sCode = tagTargetItem.item_code || tagTargetItem.barcode1 || String(tagTargetItem.id);
+
+      var tagText = '================================\n' +
+                    tagTargetItem.name_en + '\n' +
+                    'PRICE: ' + priceVal + ' (Incl. VAT)\n' +
+                    'BARCODE: ' + bCode + '\n' +
+                    'Code: ' + sCode + '\n' +
+                    '================================\n\n';
+      var fullText = '';
+      for (var i = 0; i < copies; i++) fullText += tagText;
+      window.location.href = 'sampos://print?text=' + encodeURIComponent(fullText) + '&qr=';
     }
 
     function renderCart() {
@@ -623,22 +678,16 @@
       });
     }
 
-    // DIRECT ESC/POS & SUNMI PRINT PLUGIN FOR JS DISPATCHER
     function sendToSunmiPrintPlugin(inv) {
-      var cfg = getCloudConfig();
       var storeName = (storeSettings.company_name_en || 'RETAIL STORE').toUpperCase();
       var vatNo = storeSettings.vat_number || '300000000000003';
       var line = '--------------------------------\n';
 
-      // Build clean 58mm Receipt Text + ESC/POS Commands
       var receiptText = '';
-      receiptText += '\x1B\x40'; // Init printer
-      receiptText += '\x1B\x61\x01'; // Center align
-      receiptText += '\x1B\x21\x10' + storeName + '\n';
-      receiptText += '\x1B\x21\x00VAT: ' + vatNo + '\n';
+      receiptText += storeName + '\n';
+      receiptText += 'VAT: ' + vatNo + '\n';
       receiptText += (inv.is_return ? 'CREDIT NOTE\n' : 'SIMPLIFIED TAX INVOICE\n');
       receiptText += line;
-      receiptText += '\x1B\x61\x00'; // Left align
       receiptText += 'Inv No : ' + inv.invoice_no + '\n';
       receiptText += 'Date   : ' + inv.invoice_date + ' ' + (inv.invoice_time || '') + '\n';
       receiptText += 'Party  : ' + (inv.customer_name || 'WALK-IN') + '\n';
@@ -658,66 +707,13 @@
       receiptText += line;
       receiptText += 'Subtotal (Excl VAT): ' + Number(inv.subtotal).toFixed(2) + '\n';
       receiptText += 'VAT (15%)          : ' + Number(inv.vat_amount).toFixed(2) + '\n';
-      receiptText += '\x1B\x21\x10TOTAL : ' + Number(inv.total_amount).toFixed(2) + ' SAR\n';
-      receiptText += '\x1B\x21\x00Mode  : ' + inv.payment_method + '\n';
+      receiptText += 'TOTAL : ' + Number(inv.total_amount).toFixed(2) + ' SAR\n';
+      receiptText += 'Mode  : ' + inv.payment_method + '\n';
       receiptText += line;
-      receiptText += '\x1B\x61\x01Thank You For Shopping!\n\n\n\n';
+      receiptText += 'Thank You For Shopping!\n\n';
 
-      // Method 1: Native JS interface injected by Sunmi WebView / Plugin
-      if (window.sunmiPrinter && typeof window.sunmiPrinter.printText === 'function') {
-        window.sunmiPrinter.printText(receiptText);
-        if (inv.zatca_qr && window.sunmiPrinter.printQRCode) {
-          window.sunmiPrinter.printQRCode(inv.zatca_qr, 6, 1);
-          window.sunmiPrinter.lineWrap(3);
-        }
-        showToastMsg('🖨️ Printed on SUNMI!');
-        return;
-      }
-
-      // Method 2: Sunmi Print Plugin for JS Local HTTP Server (127.0.0.1:8080 or 8000)
-      var endpoints = [
-        'http://127.0.0.1:' + cfg.pluginPort + '/print',
-        'http://127.0.0.1:' + cfg.pluginPort + '/api/print',
-        'http://127.0.0.1:8000/print'
-      ];
-
-      var payload = {
-        text: receiptText,
-        qr: inv.zatca_qr || '',
-        align: 1,
-        width: 58
-      };
-
-      fetch(endpoints[0], {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      }).then(function() {
-        showToastMsg('🖨️ Printed via Sunmi Plugin!');
-      }).catch(function() {
-        // Try secondary port 8000 or WebSocket
-        fetch(endpoints[2], {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).then(function() {
-          showToastMsg('🖨️ Printed via Sunmi Plugin!');
-        }).catch(function() {
-          try {
-            var ws = new WebSocket('ws://127.0.0.1:' + cfg.pluginPort);
-            ws.onopen = function() {
-              ws.send(JSON.stringify(payload));
-              showToastMsg('🖨️ Printed via Sunmi WS!');
-              setTimeout(function() { ws.close(); }, 500);
-            };
-            ws.onerror = function() {
-              alert('Sunmi Print Plugin തുറന്ന് Start ആക്കുക! (App Store -> Sunmi Print plugin for -> Open)');
-            };
-          } catch (e) {
-            alert('Sunmi Print Plugin തുറന്ന് Start ആക്കുക!');
-          }
-        });
-      });
+      var deepLink = 'sampos://print?text=' + encodeURIComponent(receiptText) + '&qr=' + encodeURIComponent(inv.zatca_qr || '');
+      window.location.href = deepLink;
     }
 
     function testSunmiJsPrint() {
@@ -795,15 +791,15 @@
           return Promise.all(tasks);
         }).then(function() {
           invRecord.items = itemsRecords;
+          clearCart();
+          activeParty = null;
+          document.getElementById('partySearchInput').value = '';
+          loadInitialData(false);
           if (action === 'sunmi') {
             sendToSunmiPrintPlugin(invRecord);
           } else {
             showToastMsg('✅ Saved: ' + invoiceNo);
           }
-          clearCart();
-          activeParty = null;
-          document.getElementById('partySearchInput').value = '';
-          loadInitialData(false);
         });
       }).catch(function(err) {
         alert('Save Error: ' + err.message);
@@ -917,7 +913,6 @@
     function openServerConfigModal() {
       var cfg = getCloudConfig();
       document.getElementById('cfgTerminalId').value = cfg.terminalId;
-      document.getElementById('cfgPluginPort').value = cfg.pluginPort;
       document.getElementById('cfgSbUrl').value = cfg.sbUrl;
       document.getElementById('cfgSbKey').value = cfg.sbKey;
       document.getElementById('serverModal').style.display = 'flex';
@@ -925,7 +920,6 @@
 
     function saveServerConfig() {
       localStorage.setItem('sunmi_terminal_id', document.getElementById('cfgTerminalId').value.trim() || 'S1');
-      localStorage.setItem('sunmi_plugin_port', document.getElementById('cfgPluginPort').value.trim() || '8080');
       localStorage.setItem('sampos_sb_url', document.getElementById('cfgSbUrl').value.trim());
       localStorage.setItem('sampos_sb_key', document.getElementById('cfgSbKey').value.trim());
       document.getElementById('serverModal').style.display = 'none';
