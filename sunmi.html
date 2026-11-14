@@ -67,12 +67,11 @@
       display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;
     }
 
-    /* Continuous Red Laser Scanner Box */
     #scannerWrapper {
       display: none; position: relative; width: 100%; border-radius: 8px; overflow: hidden;
       border: 2px solid #ef4444; background: #000; margin-bottom: 8px;
     }
-    #scannerVideo { width: 100%; height: 190px; object-fit: cover; display: block; }
+    #scannerVideo { width: 100%; height: 200px; object-fit: cover; display: block; }
     .laser-guide {
       position: absolute; top: 20%; left: 10%; right: 10%; bottom: 20%;
       border: 2px solid rgba(255,255,255,0.4); border-radius: 6px; pointer-events: none;
@@ -80,7 +79,7 @@
     .laser-line {
       position: absolute; left: 4%; right: 4%; height: 2px;
       background: #ef4444; box-shadow: 0 0 8px #ef4444, 0 0 14px #ff0000;
-      animation: laserSweep 1.6s infinite ease-in-out;
+      animation: laserSweep 1.5s infinite ease-in-out;
     }
     @keyframes laserSweep {
       0% { top: 10%; }
@@ -90,7 +89,7 @@
     .scanner-badge {
       position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
       background: rgba(0,0,0,0.75); color: #4ade80; font-size: 11px; font-weight: bold;
-      padding: 3px 10px; border-radius: 12px; pointer-events: none;
+      padding: 3px 10px; border-radius: 12px; pointer-events: none; white-space: nowrap;
     }
 
     #scanToast {
@@ -199,13 +198,14 @@
         <button type="button" class="btn-camera" onclick="toggleCameraScanner()" id="btnCamToggle">📷 Scan</button>
       </div>
 
-      <!-- Continuous Red Laser Scanner -->
+      <!-- HD Auto-Focus Red Laser Scanner (Auto-Stops after 1 scan) -->
       <div id="scannerWrapper">
-        <video id="scannerVideo" playsinline autoplay muted></video>
+        <video id="scannerVideo" playsinline autoplay muted onclick="triggerCameraFocus()"></video>
         <div class="laser-guide">
           <div class="laser-line"></div>
         </div>
-        <div class="scanner-badge">🔴 Continuous Scan Active (Tap ⏹️ Stop to close)</div>
+        <button type="button" id="btnTorchToggle" onclick="toggleCameraTorch()" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.75); color:#facc15; border:1px solid #facc15; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:bold; z-index:20;">🔦 Flash</button>
+        <div class="scanner-badge">🎯 Hold 15-20cm away | Tap screen to Focus</div>
       </div>
 
       <!-- Stock Take Box -->
@@ -326,12 +326,11 @@
     var isSaving = false;
 
     var isScanning = false;
+    var torchOn = false;
     var zxingReader = null;
     var videoStream = null;
     var barcodeDetector = null;
     var scanTimer = null;
-    var lastScanCode = '';
-    var lastScanTime = 0;
 
     function getCloudConfig() {
       return {
@@ -370,7 +369,7 @@
       t.style.background = isErr ? '#ef4444' : '#10b981';
       t.innerText = msg;
       t.style.display = 'block';
-      setTimeout(function() { t.style.display = 'none'; }, 1500);
+      setTimeout(function() { t.style.display = 'none'; }, 1600);
     }
 
     function playBeep() {
@@ -381,7 +380,7 @@
         osc.frequency.setValueAtTime(1000, ctx.currentTime);
         osc.connect(ctx.destination);
         osc.start();
-        osc.stop(ctx.currentTime + 0.08);
+        osc.stop(ctx.currentTime + 0.09);
       } catch (e) {}
     }
 
@@ -655,15 +654,50 @@
 
     function clearCart() { cart = []; renderCart(); }
 
-    // Continuous Red Laser Camera Scanner (Does NOT close after 1 scan!)
-    function onBarcodeDetectedContinuous(rawCode) {
+    function applyCameraFocusAndTrack(videoEl) {
+      try {
+        var stream = videoEl && videoEl.srcObject;
+        if (!stream) return;
+        videoStream = stream;
+        var track = stream.getVideoTracks()[0];
+        if (!track || !track.getCapabilities) return;
+        var caps = track.getCapabilities();
+        var adv = {};
+        if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
+          adv.focusMode = 'continuous';
+        }
+        if (Object.keys(adv).length > 0) {
+          track.applyConstraints({ advanced: [adv] }).catch(function() {});
+        }
+      } catch (e) {}
+    }
+
+    function triggerCameraFocus() {
+      var video = document.getElementById('scannerVideo');
+      applyCameraFocusAndTrack(video);
+      showToastMsg('🎯 Focusing Camera...');
+    }
+
+    function toggleCameraTorch() {
+      try {
+        var video = document.getElementById('scannerVideo');
+        var stream = video && video.srcObject;
+        if (!stream) return;
+        var track = stream.getVideoTracks()[0];
+        torchOn = !torchOn;
+        track.applyConstraints({ advanced: [{ torch: torchOn }] }).then(function() {
+          document.getElementById('btnTorchToggle').innerText = torchOn ? '🔦 Flash ON' : '🔦 Flash';
+        }).catch(function() {
+          showToastMsg('Flash not supported', true);
+        });
+      } catch (e) {}
+    }
+
+    // Automatically stops camera immediately after 1 barcode scan
+    function onSingleBarcodeScanned(rawCode) {
       var code = (rawCode || '').trim().toUpperCase();
-      if (!code) return;
-      var now = Date.now();
-      // Prevent duplicate scan of same item within 1.5 seconds
-      if (code === lastScanCode && (now - lastScanTime) < 1500) return;
-      lastScanCode = code;
-      lastScanTime = now;
+      if (!code || !isScanning) return;
+      stopCameraScanner();
       handleItemEnter(code);
     }
 
@@ -679,18 +713,33 @@
       btn.innerText = '⏹️ Stop';
       btn.classList.add('scanning');
       isScanning = true;
-      lastScanCode = '';
+      torchOn = false;
+      document.getElementById('btnTorchToggle').innerText = '🔦 Flash';
 
-      // Use ZXing Continuous Video Scanner (works on all Android Chrome versions)
+      var hdConstraints = {
+        audio: false,
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          focusMode: { ideal: 'continuous' }
+        }
+      };
+
       if (window.ZXing && ZXing.BrowserMultiFormatReader) {
         try {
-          zxingReader = new ZXing.BrowserMultiFormatReader();
+          var hints = new Map();
+          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+          zxingReader = new ZXing.BrowserMultiFormatReader(hints, 200);
           zxingReader.decodeFromConstraints(
-            { video: { facingMode: 'environment' } },
+            hdConstraints,
             'scannerVideo',
             function(result, err) {
+              if (!videoStream) {
+                applyCameraFocusAndTrack(document.getElementById('scannerVideo'));
+              }
               if (result && isScanning) {
-                onBarcodeDetectedContinuous(result.getText());
+                onSingleBarcodeScanned(result.getText());
               }
             }
           );
@@ -698,26 +747,26 @@
         } catch (e) {}
       }
 
-      // Fallback to native getUserMedia + BarcodeDetector
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera not supported in this browser.');
         stopCameraScanner();
         return;
       }
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
+      navigator.mediaDevices.getUserMedia(hdConstraints).then(function(stream) {
         videoStream = stream;
         var video = document.getElementById('scannerVideo');
         video.srcObject = stream;
         video.play();
+        applyCameraFocusAndTrack(video);
 
         scanTimer = setInterval(function() {
           if (!barcodeDetector || !videoStream || video.readyState < 2) return;
           barcodeDetector.detect(video).then(function(codes) {
             if (codes && codes.length > 0 && isScanning) {
-              onBarcodeDetectedContinuous(codes[0].rawValue);
+              onSingleBarcodeScanned(codes[0].rawValue);
             }
           }).catch(function() {});
-        }, 250);
+        }, 200);
       }).catch(function(err) {
         alert('Camera Permission Error: ' + err.message);
         stopCameraScanner();
@@ -726,6 +775,7 @@
 
     function stopCameraScanner() {
       isScanning = false;
+      torchOn = false;
       if (zxingReader) {
         try { zxingReader.reset(); } catch (e) {}
         zxingReader = null;
