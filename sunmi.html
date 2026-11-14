@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <title>SAMPOS SUNMI V2s POS</title>
-  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; padding: 8px; padding-bottom: 85px; }
@@ -52,10 +51,9 @@
     }
     .form-input { border-color: #475569; }
     .btn-camera {
-      background: #059669; color: #fff; border: none; padding: 10px 12px;
-      border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer;
+      background: #059669; color: #fff; border: none; padding: 10px 14px;
+      border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer;
     }
-    .btn-camera.scanning { background: #dc2626; }
 
     .search-suggestions {
       position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
@@ -65,31 +63,6 @@
     .suggestion-row {
       padding: 10px; border-bottom: 1px solid #1e293b; cursor: pointer;
       display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;
-    }
-
-    #scannerWrapper {
-      display: none; position: relative; width: 100%; border-radius: 8px; overflow: hidden;
-      border: 2px solid #ef4444; background: #000; margin-bottom: 8px;
-    }
-    #scannerVideo { width: 100%; height: 200px; object-fit: cover; display: block; }
-    .laser-guide {
-      position: absolute; top: 20%; left: 10%; right: 10%; bottom: 20%;
-      border: 2px solid rgba(255,255,255,0.4); border-radius: 6px; pointer-events: none;
-    }
-    .laser-line {
-      position: absolute; left: 4%; right: 4%; height: 2px;
-      background: #ef4444; box-shadow: 0 0 8px #ef4444, 0 0 14px #ff0000;
-      animation: laserSweep 1.5s infinite ease-in-out;
-    }
-    @keyframes laserSweep {
-      0% { top: 10%; }
-      50% { top: 88%; }
-      100% { top: 10%; }
-    }
-    .scanner-badge {
-      position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
-      background: rgba(0,0,0,0.75); color: #4ade80; font-size: 11px; font-weight: bold;
-      padding: 3px 10px; border-radius: 12px; pointer-events: none; white-space: nowrap;
     }
 
     #scanToast {
@@ -187,7 +160,7 @@
 
     <div class="card">
       <div class="card-header">
-        <span>📷 Camera Barcode / Search</span>
+        <span>📷 Native Scanner / DB Search</span>
         <span id="serverStatusBadge" style="font-size:11px; color:#f59e0b;">⏳ Syncing...</span>
       </div>
       <div class="action-grid">
@@ -195,17 +168,7 @@
           <input type="text" id="itemSearchInput" class="search-input" placeholder="Type Item Name, Code or Barcode..." autocomplete="off">
           <div id="itemSuggestions" class="search-suggestions"></div>
         </div>
-        <button type="button" class="btn-camera" onclick="toggleCameraScanner()" id="btnCamToggle">📷 Scan</button>
-      </div>
-
-      <!-- HD Auto-Focus Red Laser Scanner (Auto-Stops after 1 scan) -->
-      <div id="scannerWrapper">
-        <video id="scannerVideo" playsinline autoplay muted onclick="triggerCameraFocus()"></video>
-        <div class="laser-guide">
-          <div class="laser-line"></div>
-        </div>
-        <button type="button" id="btnTorchToggle" onclick="toggleCameraTorch()" style="position:absolute; top:8px; right:8px; background:rgba(0,0,0,0.75); color:#facc15; border:1px solid #facc15; padding:5px 10px; border-radius:6px; font-size:11px; font-weight:bold; z-index:20;">🔦 Flash</button>
-        <div class="scanner-badge">🎯 Hold 15-20cm away | Tap screen to Focus</div>
+        <button type="button" class="btn-camera" onclick="openNativeScanner()" id="btnCamToggle">📷 Scan</button>
       </div>
 
       <!-- Stock Take Box -->
@@ -325,13 +288,6 @@
     var tagTargetItem = null;
     var isSaving = false;
 
-    var isScanning = false;
-    var torchOn = false;
-    var zxingReader = null;
-    var videoStream = null;
-    var barcodeDetector = null;
-    var scanTimer = null;
-
     function getCloudConfig() {
       return {
         sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
@@ -370,18 +326,6 @@
       t.innerText = msg;
       t.style.display = 'block';
       setTimeout(function() { t.style.display = 'none'; }, 1600);
-    }
-
-    function playBeep() {
-      try {
-        var ctx = new (window.AudioContext || window.webkitAudioContext)();
-        var osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(1000, ctx.currentTime);
-        osc.connect(ctx.destination);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.09);
-      } catch (e) {}
     }
 
     function fetchAllProducts() {
@@ -423,6 +367,26 @@
         badge.innerHTML = '🟢 Online (' + productsList.length + ')';
         badge.style.color = '#4ade80';
         if (showToast) showToastMsg('✅ ' + productsList.length + ' Items Synced');
+
+        // Restore cart & auto-add scanned barcode from Native Scanner
+        try {
+          var savedCart = sessionStorage.getItem('sampos_temp_cart');
+          if (savedCart) {
+            cart = JSON.parse(savedCart) || [];
+            renderCart();
+            sessionStorage.removeItem('sampos_temp_cart');
+          }
+          var params = new URLSearchParams(window.location.search);
+          var scannedCode = params.get('scanned');
+          var scanMode = params.get('mode');
+          if (scanMode && scanMode !== mainMode) {
+            switchMainMode(scanMode);
+          }
+          if (scannedCode) {
+            handleItemEnter(scannedCode);
+            window.history.replaceState({}, document.title, window.location.pathname);
+          }
+        } catch (e) {}
       }).catch(function(err) {
         badge.innerHTML = '🔴 Error';
         badge.style.color = '#f87171';
@@ -431,12 +395,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
-      if ('BarcodeDetector' in window) {
-        try {
-          barcodeDetector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'code_39', 'upc_a', 'upc_e', 'qr_code'] });
-        } catch (e) {}
-      }
-
       var partyInp = document.getElementById('partySearchInput');
       partyInp.addEventListener('input', function() { handlePartySearch(this.value); });
       partyInp.addEventListener('keyup', function() { handlePartySearch(this.value); });
@@ -453,6 +411,13 @@
 
       loadInitialData(false);
     });
+
+    function openNativeScanner() {
+      try {
+        sessionStorage.setItem('sampos_temp_cart', JSON.stringify(cart));
+      } catch (e) {}
+      window.location.href = 'sampos://scan?mode=' + encodeURIComponent(mainMode);
+    }
 
     function switchMainMode(mode) {
       mainMode = mode;
@@ -476,7 +441,6 @@
       document.getElementById('partyHeaderTitle').innerText = mode === 'purchase' ? '🚚 Supplier (സപ്ലയർ)' : '👤 Customer (കസ്റ്റമർ)';
       setPaymentMethod(mode === 'purchase' ? 'CREDIT' : 'CASH');
       setSubmode('normal');
-      clearCart();
     }
 
     function setSubmode(sub) {
@@ -559,8 +523,6 @@
       });
       if (found) {
         addItemToCartOrStock(found);
-        playBeep();
-        if (navigator.vibrate) navigator.vibrate(70);
         showToastMsg('✅ ' + found.name_en);
       } else {
         showToastMsg('❌ Not Found: ' + code, true);
@@ -653,143 +615,6 @@
     }
 
     function clearCart() { cart = []; renderCart(); }
-
-    function applyCameraFocusAndTrack(videoEl) {
-      try {
-        var stream = videoEl && videoEl.srcObject;
-        if (!stream) return;
-        videoStream = stream;
-        var track = stream.getVideoTracks()[0];
-        if (!track || !track.getCapabilities) return;
-        var caps = track.getCapabilities();
-        var adv = {};
-        if (caps.focusMode && caps.focusMode.indexOf('continuous') !== -1) {
-          adv.focusMode = 'continuous';
-        }
-        if (Object.keys(adv).length > 0) {
-          track.applyConstraints({ advanced: [adv] }).catch(function() {});
-        }
-      } catch (e) {}
-    }
-
-    function triggerCameraFocus() {
-      var video = document.getElementById('scannerVideo');
-      applyCameraFocusAndTrack(video);
-      showToastMsg('🎯 Focusing Camera...');
-    }
-
-    function toggleCameraTorch() {
-      try {
-        var video = document.getElementById('scannerVideo');
-        var stream = video && video.srcObject;
-        if (!stream) return;
-        var track = stream.getVideoTracks()[0];
-        torchOn = !torchOn;
-        track.applyConstraints({ advanced: [{ torch: torchOn }] }).then(function() {
-          document.getElementById('btnTorchToggle').innerText = torchOn ? '🔦 Flash ON' : '🔦 Flash';
-        }).catch(function() {
-          showToastMsg('Flash not supported', true);
-        });
-      } catch (e) {}
-    }
-
-    // Automatically stops camera immediately after 1 barcode scan
-    function onSingleBarcodeScanned(rawCode) {
-      var code = (rawCode || '').trim().toUpperCase();
-      if (!code || !isScanning) return;
-      stopCameraScanner();
-      handleItemEnter(code);
-    }
-
-    function toggleCameraScanner() {
-      if (isScanning) {
-        stopCameraScanner();
-        return;
-      }
-
-      var wrap = document.getElementById('scannerWrapper');
-      var btn = document.getElementById('btnCamToggle');
-      wrap.style.display = 'block';
-      btn.innerText = '⏹️ Stop';
-      btn.classList.add('scanning');
-      isScanning = true;
-      torchOn = false;
-      document.getElementById('btnTorchToggle').innerText = '🔦 Flash';
-
-      var hdConstraints = {
-        audio: false,
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          focusMode: { ideal: 'continuous' }
-        }
-      };
-
-      if (window.ZXing && ZXing.BrowserMultiFormatReader) {
-        try {
-          var hints = new Map();
-          hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-          zxingReader = new ZXing.BrowserMultiFormatReader(hints, 200);
-          zxingReader.decodeFromConstraints(
-            hdConstraints,
-            'scannerVideo',
-            function(result, err) {
-              if (!videoStream) {
-                applyCameraFocusAndTrack(document.getElementById('scannerVideo'));
-              }
-              if (result && isScanning) {
-                onSingleBarcodeScanned(result.getText());
-              }
-            }
-          );
-          return;
-        } catch (e) {}
-      }
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        alert('Camera not supported in this browser.');
-        stopCameraScanner();
-        return;
-      }
-      navigator.mediaDevices.getUserMedia(hdConstraints).then(function(stream) {
-        videoStream = stream;
-        var video = document.getElementById('scannerVideo');
-        video.srcObject = stream;
-        video.play();
-        applyCameraFocusAndTrack(video);
-
-        scanTimer = setInterval(function() {
-          if (!barcodeDetector || !videoStream || video.readyState < 2) return;
-          barcodeDetector.detect(video).then(function(codes) {
-            if (codes && codes.length > 0 && isScanning) {
-              onSingleBarcodeScanned(codes[0].rawValue);
-            }
-          }).catch(function() {});
-        }, 200);
-      }).catch(function(err) {
-        alert('Camera Permission Error: ' + err.message);
-        stopCameraScanner();
-      });
-    }
-
-    function stopCameraScanner() {
-      isScanning = false;
-      torchOn = false;
-      if (zxingReader) {
-        try { zxingReader.reset(); } catch (e) {}
-        zxingReader = null;
-      }
-      if (scanTimer) { clearInterval(scanTimer); scanTimer = null; }
-      if (videoStream) {
-        videoStream.getTracks().forEach(function(t) { t.stop(); });
-        videoStream = null;
-      }
-      document.getElementById('scannerWrapper').style.display = 'none';
-      var btn = document.getElementById('btnCamToggle');
-      btn.innerText = '📷 Scan';
-      btn.classList.remove('scanning');
-    }
 
     function generateZatcaQrBase64(seller, vatNo, ts, total, vat) {
       function tlv(tag, val) {
