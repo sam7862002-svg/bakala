@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <title>SAMPOS SUNMI V2s POS</title>
+  <script src="https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; padding: 8px; padding-bottom: 85px; }
@@ -54,6 +55,7 @@
       background: #059669; color: #fff; border: none; padding: 10px 12px;
       border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer;
     }
+    .btn-camera.scanning { background: #dc2626; }
 
     .search-suggestions {
       position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
@@ -65,11 +67,31 @@
       display: flex; justify-content: space-between; align-items: center; font-size: 12.5px;
     }
 
+    /* Continuous Red Laser Scanner Box */
     #scannerWrapper {
       display: none; position: relative; width: 100%; border-radius: 8px; overflow: hidden;
-      border: 2px solid #38bdf8; background: #000; margin-bottom: 8px;
+      border: 2px solid #ef4444; background: #000; margin-bottom: 8px;
     }
-    #scannerVideo { width: 100%; height: 210px; object-fit: cover; display: block; }
+    #scannerVideo { width: 100%; height: 190px; object-fit: cover; display: block; }
+    .laser-guide {
+      position: absolute; top: 20%; left: 10%; right: 10%; bottom: 20%;
+      border: 2px solid rgba(255,255,255,0.4); border-radius: 6px; pointer-events: none;
+    }
+    .laser-line {
+      position: absolute; left: 4%; right: 4%; height: 2px;
+      background: #ef4444; box-shadow: 0 0 8px #ef4444, 0 0 14px #ff0000;
+      animation: laserSweep 1.6s infinite ease-in-out;
+    }
+    @keyframes laserSweep {
+      0% { top: 10%; }
+      50% { top: 88%; }
+      100% { top: 10%; }
+    }
+    .scanner-badge {
+      position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.75); color: #4ade80; font-size: 11px; font-weight: bold;
+      padding: 3px 10px; border-radius: 12px; pointer-events: none;
+    }
 
     #scanToast {
       position: fixed; top: 55px; left: 50%; transform: translateX(-50%);
@@ -171,14 +193,19 @@
       </div>
       <div class="action-grid">
         <div style="position: relative;">
-          <input type="text" id="itemSearchInput" class="search-input" placeholder="Type Item Name or Barcode..." autocomplete="off">
+          <input type="text" id="itemSearchInput" class="search-input" placeholder="Type Item Name, Code or Barcode..." autocomplete="off">
           <div id="itemSuggestions" class="search-suggestions"></div>
         </div>
         <button type="button" class="btn-camera" onclick="toggleCameraScanner()" id="btnCamToggle">📷 Scan</button>
       </div>
 
+      <!-- Continuous Red Laser Scanner -->
       <div id="scannerWrapper">
         <video id="scannerVideo" playsinline autoplay muted></video>
+        <div class="laser-guide">
+          <div class="laser-line"></div>
+        </div>
+        <div class="scanner-badge">🔴 Continuous Scan Active (Tap ⏹️ Stop to close)</div>
       </div>
 
       <!-- Stock Take Box -->
@@ -191,11 +218,11 @@
         </div>
       </div>
 
-      <!-- Shelf Tag & Barcode Print Box -->
+      <!-- Database Shelf Tag & Barcode Print Box -->
       <div id="shelfTagBox" style="display:none; background:#0f172a; padding:10px; border-radius:8px; margin-top:6px;">
-        <div style="font-size:12.5px; font-weight:bold; color:#38bdf8;">🏷️ Shelf Tag & Barcode Printer</div>
+        <div style="font-size:12.5px; font-weight:bold; color:#38bdf8;">🏷️ DB Shelf Tag & Barcode Printer</div>
         <div class="tag-preview" id="tagPreviewArea">
-          <div style="font-size:15px; font-weight:800;" id="tagPrevName">Search or scan an item above</div>
+          <div style="font-size:15px; font-weight:800;" id="tagPrevName">Search or scan item above</div>
           <div style="font-size:26px; font-weight:900; margin:4px 0;" id="tagPrevPrice">0.00 SAR</div>
           <div style="font-size:11px; color:#475569;">(Incl. 15% VAT)</div>
           <div style="font-family:monospace; font-size:13px; font-weight:bold; margin-top:6px; letter-spacing:2px;" id="tagPrevBarcode">||||| |||| |||||</div>
@@ -203,9 +230,10 @@
         </div>
         <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
           <label style="font-size:12px; color:#94a3b8; font-weight:bold;">Copies:</label>
-          <input type="number" id="tagPrintQty" class="form-input" value="1" min="1" max="50" style="width:70px; text-align:center;">
-          <button type="button" class="btn-primary" style="background:#f97316; flex:1;" onclick="printSelectedShelfTag()">🏷️ Print Shelf Tag</button>
+          <input type="number" id="tagPrintQty" class="form-input" value="1" min="1" max="50" style="width:65px; text-align:center;">
+          <button type="button" class="btn-primary" style="background:#f97316; flex:1;" onclick="printSelectedShelfTag('tag')">🏷️ Print Shelf Tag</button>
         </div>
+        <button type="button" class="btn-primary" style="background:#0284c7; margin-top:8px;" onclick="printSelectedShelfTag('barcode')">📊 Print Barcode Only</button>
       </div>
     </div>
 
@@ -297,9 +325,13 @@
     var tagTargetItem = null;
     var isSaving = false;
 
+    var isScanning = false;
+    var zxingReader = null;
     var videoStream = null;
     var barcodeDetector = null;
     var scanTimer = null;
+    var lastScanCode = '';
+    var lastScanTime = 0;
 
     function getCloudConfig() {
       return {
@@ -338,7 +370,19 @@
       t.style.background = isErr ? '#ef4444' : '#10b981';
       t.innerText = msg;
       t.style.display = 'block';
-      setTimeout(function() { t.style.display = 'none'; }, 1600);
+      setTimeout(function() { t.style.display = 'none'; }, 1500);
+    }
+
+    function playBeep() {
+      try {
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      } catch (e) {}
     }
 
     function fetchAllProducts() {
@@ -486,6 +530,7 @@
       var matches = productsList.filter(function(p) {
         return (p.name_en || '').toUpperCase().indexOf(q) !== -1 ||
                (p.barcode1 && p.barcode1.toUpperCase().indexOf(q) !== -1) ||
+               (p.barcode2 && p.barcode2.toUpperCase().indexOf(q) !== -1) ||
                (p.item_code && p.item_code.toUpperCase().indexOf(q) !== -1);
       }).slice(0, 12);
 
@@ -494,7 +539,7 @@
         var div = document.createElement('div');
         div.className = 'suggestion-row';
         var price = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
-        div.innerHTML = '<div><b>' + p.name_en + '</b><br><small style="color:#94a3b8;">' + (p.barcode1 || '') + ' | Stk: ' + (p.stock_quantity || 0) + '</small></div><div><b style="color:#38bdf8;">' + price.toFixed(2) + '</b></div>';
+        div.innerHTML = '<div><b>' + p.name_en + '</b><br><small style="color:#94a3b8;">' + (p.barcode1 || p.item_code || '') + ' | Stk: ' + (p.stock_quantity || 0) + '</small></div><div><b style="color:#38bdf8;">' + price.toFixed(2) + '</b></div>';
         div.onclick = function() {
           addItemToCartOrStock(p);
           document.getElementById('itemSearchInput').value = '';
@@ -509,10 +554,14 @@
       var code = (val || '').trim().toUpperCase();
       if (!code) return;
       var found = productsList.find(function(p) {
-        return p.barcode1 === code || p.barcode2 === code || p.item_code === code;
+        return (p.barcode1 && p.barcode1.toUpperCase() === code) ||
+               (p.barcode2 && p.barcode2.toUpperCase() === code) ||
+               (p.item_code && p.item_code.toUpperCase() === code);
       });
       if (found) {
         addItemToCartOrStock(found);
+        playBeep();
+        if (navigator.vibrate) navigator.vibrate(70);
         showToastMsg('✅ ' + found.name_en);
       } else {
         showToastMsg('❌ Not Found: ' + code, true);
@@ -554,9 +603,9 @@
       renderCart();
     }
 
-    function printSelectedShelfTag() {
+    function printSelectedShelfTag(printMode) {
       if (!tagTargetItem) {
-        alert('ആദ്യം ഒരു സാധനം സെർച്ച് ചെയ്യുകയോ സ്കാൻ ചെയ്യുകയോ ചെയ്യുക!');
+        alert('ആദ്യം മുകളിലെ ബോക്സിൽ സാധനത്തിന്റെ പേര്/കോഡ് സെർച്ച് ചെയ്യുകയോ സ്കാൻ ചെയ്യുകയോ ചെയ്യുക!');
         return;
       }
       var copies = parseInt(document.getElementById('tagPrintQty').value, 10) || 1;
@@ -564,15 +613,13 @@
       var bCode = tagTargetItem.barcode1 || tagTargetItem.item_code || String(tagTargetItem.id);
       var sCode = tagTargetItem.item_code || tagTargetItem.barcode1 || String(tagTargetItem.id);
 
-      var tagText = '================================\n' +
-                    tagTargetItem.name_en + '\n' +
-                    'PRICE: ' + priceVal + ' (Incl. VAT)\n' +
-                    'BARCODE: ' + bCode + '\n' +
-                    'Code: ' + sCode + '\n' +
-                    '================================\n\n';
-      var fullText = '';
-      for (var i = 0; i < copies; i++) fullText += tagText;
-      window.location.href = 'sampos://print?text=' + encodeURIComponent(fullText) + '&qr=';
+      var url = 'sampos://tag?name=' + encodeURIComponent(tagTargetItem.name_en) +
+                '&price=' + encodeURIComponent(priceVal) +
+                '&barcode=' + encodeURIComponent(bCode) +
+                '&code=' + encodeURIComponent(sCode) +
+                '&copies=' + copies +
+                '&mode=' + (printMode || 'tag');
+      window.location.href = url;
     }
 
     function renderCart() {
@@ -608,14 +655,53 @@
 
     function clearCart() { cart = []; renderCart(); }
 
+    // Continuous Red Laser Camera Scanner (Does NOT close after 1 scan!)
+    function onBarcodeDetectedContinuous(rawCode) {
+      var code = (rawCode || '').trim().toUpperCase();
+      if (!code) return;
+      var now = Date.now();
+      // Prevent duplicate scan of same item within 1.5 seconds
+      if (code === lastScanCode && (now - lastScanTime) < 1500) return;
+      lastScanCode = code;
+      lastScanTime = now;
+      handleItemEnter(code);
+    }
+
     function toggleCameraScanner() {
-      var wrap = document.getElementById('scannerWrapper');
-      if (wrap.style.display === 'block') {
+      if (isScanning) {
         stopCameraScanner();
         return;
       }
+
+      var wrap = document.getElementById('scannerWrapper');
+      var btn = document.getElementById('btnCamToggle');
+      wrap.style.display = 'block';
+      btn.innerText = '⏹️ Stop';
+      btn.classList.add('scanning');
+      isScanning = true;
+      lastScanCode = '';
+
+      // Use ZXing Continuous Video Scanner (works on all Android Chrome versions)
+      if (window.ZXing && ZXing.BrowserMultiFormatReader) {
+        try {
+          zxingReader = new ZXing.BrowserMultiFormatReader();
+          zxingReader.decodeFromConstraints(
+            { video: { facingMode: 'environment' } },
+            'scannerVideo',
+            function(result, err) {
+              if (result && isScanning) {
+                onBarcodeDetectedContinuous(result.getText());
+              }
+            }
+          );
+          return;
+        } catch (e) {}
+      }
+
+      // Fallback to native getUserMedia + BarcodeDetector
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera not supported in this browser.');
+        stopCameraScanner();
         return;
       }
       navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
@@ -623,33 +709,36 @@
         var video = document.getElementById('scannerVideo');
         video.srcObject = stream;
         video.play();
-        wrap.style.display = 'block';
-        document.getElementById('btnCamToggle').innerText = '⏹️ Stop';
 
         scanTimer = setInterval(function() {
           if (!barcodeDetector || !videoStream || video.readyState < 2) return;
           barcodeDetector.detect(video).then(function(codes) {
-            if (codes && codes.length > 0) {
-              var code = codes[0].rawValue.trim().toUpperCase();
-              if (navigator.vibrate) navigator.vibrate(80);
-              stopCameraScanner();
-              handleItemEnter(code);
+            if (codes && codes.length > 0 && isScanning) {
+              onBarcodeDetectedContinuous(codes[0].rawValue);
             }
           }).catch(function() {});
-        }, 300);
+        }, 250);
       }).catch(function(err) {
         alert('Camera Permission Error: ' + err.message);
+        stopCameraScanner();
       });
     }
 
     function stopCameraScanner() {
+      isScanning = false;
+      if (zxingReader) {
+        try { zxingReader.reset(); } catch (e) {}
+        zxingReader = null;
+      }
       if (scanTimer) { clearInterval(scanTimer); scanTimer = null; }
       if (videoStream) {
         videoStream.getTracks().forEach(function(t) { t.stop(); });
         videoStream = null;
       }
       document.getElementById('scannerWrapper').style.display = 'none';
-      document.getElementById('btnCamToggle').innerText = '📷 Scan';
+      var btn = document.getElementById('btnCamToggle');
+      btn.innerText = '📷 Scan';
+      btn.classList.remove('scanning');
     }
 
     function generateZatcaQrBase64(seller, vatNo, ts, total, vat) {
