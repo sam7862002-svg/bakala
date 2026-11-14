@@ -337,18 +337,22 @@
     </div>
   </div>
 
-  <!-- QUICK ADD NEW PRODUCT MODAL -->
+  <!-- QUICK ADD NEW PRODUCT MODAL (Online Barcode Lookup + Brand-Safe Arabic Translation) -->
   <div class="modal-overlay" id="addProductModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
         <h3 style="color:#f59e0b; font-size:15px;">➕ Add New Product / إضافة صنف جديد</h3>
         <button type="button" onclick="closeAddProductModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✖</button>
       </div>
+      <div id="onlineLookupBanner" style="display:none; background:#0f172a; border:1px solid #38bdf8; color:#38bdf8; padding:7px 10px; border-radius:6px; font-size:12px; font-weight:bold; margin-bottom:8px;"></div>
       <div class="modal-body">
         <div class="grid-2">
           <div class="form-group">
             <label>Barcode / الباركود *</label>
-            <input type="text" id="npBarcode1" class="form-input" placeholder="628100...">
+            <div style="display:flex; gap:4px;">
+              <input type="text" id="npBarcode1" class="form-input" placeholder="628100...">
+              <button type="button" class="btn-icon" onclick="lookupBarcodeOnline(document.getElementById('npBarcode1').value)" title="Search Online DB">🔍</button>
+            </div>
           </div>
           <div class="form-group">
             <label>Item Code / كود الصنف</label>
@@ -357,15 +361,15 @@
         </div>
 
         <div class="form-group">
-          <label>Item Name (English) * <span style="color:#38bdf8; font-weight:normal;">(Auto-translates to Arabic)</span></label>
-          <input type="text" id="npNameEn" class="form-input" placeholder="e.g. ALMARAI FRESH MILK 1L" oninput="scheduleAutoTranslate(this.value)" onblur="translateEnglishToArabic(this.value)">
+          <label>Item Name (English) * <span style="color:#38bdf8; font-weight:normal;">(Brand-Safe Arabic Auto-Fill)</span></label>
+          <input type="text" id="npNameEn" class="form-input" placeholder="e.g. ALMARAI FRESH MILK 1L" oninput="scheduleAutoTranslate(this.value)" onblur="translateEnglishToArabicBrandSafe(this.value)">
         </div>
 
         <div class="form-group">
           <label>Item Name (Arabic / اسم الصنف بالعربي) <span id="transStatus" style="color:#4ade80; font-size:10px;"></span></label>
           <div style="display:flex; gap:6px;">
             <input type="text" id="npNameAr" class="form-input" dir="rtl" placeholder="اسم المنتج بالعربي">
-            <button type="button" class="btn-icon" onclick="translateEnglishToArabic(document.getElementById('npNameEn').value)" title="Translate Now">🌐</button>
+            <button type="button" class="btn-icon" onclick="translateEnglishToArabicBrandSafe(document.getElementById('npNameEn').value)" title="Translate Now">🌐</button>
           </div>
         </div>
 
@@ -505,6 +509,105 @@
         localStorage.removeItem('sampos_sb_key');
       }
     })();
+
+    // =========================================================================
+    // SAUDI RETAIL BRAND DICTIONARY (Prevents Brand Names from Mistranslating)
+    // =========================================================================
+    var BRAND_DICTIONARY = {
+      'ALMARAI': 'المراعي',
+      'AL MARAI': 'المراعي',
+      'NADEC': 'نادك',
+      'SAUDIA': 'السعودية',
+      'AL SAFI': 'الصافي',
+      'ALSAFI': 'الصافي',
+      'NADA': 'ندى',
+      'SUNTOP': 'سنتوب',
+      'SUNCOLA': 'سنكولا',
+      'SUNQUICK': 'سن كويك',
+      'RANI': 'راني',
+      'PEPSI': 'بيبسي',
+      'COCA COLA': 'كوكا كولا',
+      'COCA-COLA': 'كوكا كولا',
+      'MIRINDA': 'ميرندا',
+      '7UP': 'سفن أب',
+      'SEVEN UP': 'سفن أب',
+      'SPRITE': 'سبرايت',
+      'FANTA': 'فانتا',
+      'MOUNTAIN DEW': 'ماونتن ديو',
+      'RED BULL': 'ريد بول',
+      'CODE RED': 'كود رد',
+      'BISON': 'بايسن',
+      'LAYS': 'ليز',
+      "LAY'S": 'ليز',
+      'PRINGLES': 'برينجلز',
+      'DORITOS': 'دوريتوس',
+      'CHEETOS': 'شيتوس',
+      'TASALI': 'تسالي',
+      'GALAXY': 'جالكسي',
+      'SNICKERS': 'سنيكرز',
+      'MARS': 'مارس',
+      'TWIX': 'تويكس',
+      'BOUNTY': 'باونتي',
+      'KITKAT': 'كيت كات',
+      'KIT KAT': 'كيت كات',
+      'CADBURY': 'كادبوري',
+      'KINDER': 'كيندر',
+      'NUTELLA': 'نوتيلا',
+      'OREO': 'أوريو',
+      'ULKER': 'أولكر',
+      'GANDOUR': 'غندور',
+      'DEEMA': 'ديمة',
+      'NESCAFE': 'نسكافيه',
+      'LIPTON': 'ليبتون',
+      'RABEA': 'ربيع',
+      'AL KHAIR': 'الخير',
+      'PUCK': 'بوك',
+      'KIRI': 'كيري',
+      'KRAFT': 'كرافت',
+      'PHILADELPHIA': 'فيلادلفيا',
+      'ANCHOR': 'أنكور',
+      'LURPAK': 'لورباك',
+      'ABU KASS': 'أبو كاس',
+      'AL WALIMAH': 'الوليمة',
+      'PUNJABI': 'بنجابي',
+      'GOODY': 'قودي',
+      'HEINZ': 'هاينز',
+      'MAGGI': 'ماجي',
+      'KNORR': 'كنور',
+      'INDOMIE': 'إندومي',
+      'AFIA': 'عافية',
+      'SHAMS': 'شمس',
+      'NOOR': 'نور',
+      'TIDE': 'تايد',
+      'ARIEL': 'اريال',
+      'PERSIL': 'برسيل',
+      'OMO': 'أومو',
+      'FAIRY': 'فيري',
+      'DETTOL': 'ديتول',
+      'CLOROX': 'كلوركس',
+      'COMFORT': 'كومفورت',
+      'DOWNY': 'داوني',
+      'LUX': 'لوكس',
+      'DOVE': 'دوف',
+      'LIFEBUOY': 'لايف بوي',
+      'PANTENE': 'بانتين',
+      'HEAD & SHOULDERS': 'هيد آند شولدرز',
+      'SUNSILK': 'صانسيلك',
+      'CLEAR': 'كلير',
+      'COLGATE': 'كولجيت',
+      'SIGNAL': 'سيجنال',
+      'CLOSE UP': 'كلوس أب',
+      'PAMPERS': 'بامبرز',
+      'HUGGIES': 'هجيز',
+      'FINE': 'فاين',
+      'KLEENEX': 'كلينكس',
+      'BERAIN': 'بيرين',
+      'NOVA': 'نوفا',
+      'ARWA': 'أروى',
+      'HANA': 'هنا',
+      'TANIA': 'تانيا',
+      'AQUAFINA': 'أكوافينا'
+    };
 
     var mainMode = 'sale';
     var subMode = 'normal';
@@ -706,9 +809,13 @@
       document.getElementById('btnCamToggle').innerText = '📷 Scan';
     }
 
-    function openAddProductModal(prefillBarcode) {
+    // =========================================================================
+    // ONLINE BARCODE LOOKUP + BRAND-SAFE ARABIC TRANSLATION
+    // =========================================================================
+    function openAddProductModal(prefillBarcode, autoLookupOnline) {
       var nextCode = 'ITM-' + String(productsList.length + 101);
-      document.getElementById('npBarcode1').value = prefillBarcode || '';
+      var cleanCode = (prefillBarcode || '').trim().toUpperCase();
+      document.getElementById('npBarcode1').value = cleanCode;
       document.getElementById('npItemCode').value = nextCode;
       document.getElementById('npNameEn').value = '';
       document.getElementById('npNameAr').value = '';
@@ -718,40 +825,144 @@
       document.getElementById('npCostIncl').value = '';
       document.getElementById('npSellPrice').value = '';
       document.getElementById('transStatus').innerText = '';
+      document.getElementById('onlineLookupBanner').style.display = 'none';
       document.getElementById('addProductModal').style.display = 'flex';
-      setTimeout(function() {
-        if (prefillBarcode) document.getElementById('npNameEn').focus();
-        else document.getElementById('npBarcode1').focus();
-      }, 150);
+
+      if (autoLookupOnline && cleanCode && /^[0-9]{6,14}$/.test(cleanCode)) {
+        lookupBarcodeOnline(cleanCode);
+      } else {
+        setTimeout(function() {
+          if (cleanCode) document.getElementById('npNameEn').focus();
+          else document.getElementById('npBarcode1').focus();
+        }, 150);
+      }
     }
 
     function closeAddProductModal() {
       document.getElementById('addProductModal').style.display = 'none';
     }
 
+    function lookupBarcodeOnline(barcode) {
+      var code = (barcode || '').trim();
+      if (!code) return;
+      var banner = document.getElementById('onlineLookupBanner');
+      banner.style.display = 'block';
+      banner.style.color = '#38bdf8';
+      banner.innerText = '🔍 Searching Online Global Barcode DB... / جاري البحث عن الباركود...';
+
+      // Step 1: Query Open Food Facts API (Has both English & official Saudi Arabic names)
+      fetch('https://world.openfoodfacts.org/api/v0/product/' + encodeURIComponent(code) + '.json')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data && data.status === 1 && data.product) {
+            var p = data.product;
+            var brand = (p.brands || '').split(',')[0].trim();
+            var pName = (p.product_name_en || p.product_name || '').trim();
+            var qty = (p.quantity || '').trim();
+
+            var fullEn = [brand, pName, qty].filter(Boolean).join(' ').replace(/\s+/g, ' ').toUpperCase();
+            if (brand && fullEn.indexOf(brand.toUpperCase()) !== 0) {
+              fullEn = (brand + ' ' + fullEn).toUpperCase();
+            }
+
+            if (fullEn) {
+              document.getElementById('npNameEn').value = fullEn;
+              banner.style.color = '#4ade80';
+              banner.innerText = '✅ Found Online! Enter Selling Price / تم العثور على الصنف - أدخل السعر';
+
+              // Use direct Arabic packet name if available, otherwise use Brand-Safe translator
+              var directAr = (p.product_name_ar || '').trim();
+              if (directAr) {
+                document.getElementById('npNameAr').value = directAr;
+                document.getElementById('transStatus').innerText = '✅ Official Arabic';
+              } else {
+                translateEnglishToArabicBrandSafe(fullEn);
+              }
+              document.getElementById('npSellPrice').focus();
+              return true;
+            }
+          }
+          return false;
+        })
+        .then(function(foundInOff) {
+          if (foundInOff) return;
+          // Step 2: Fallback to UPCitemdb Trial API
+          return fetch('https://api.upcitemdb.com/prod/trial/lookup?upc=' + encodeURIComponent(code))
+            .then(function(r) { return r.json(); })
+            .then(function(uData) {
+              if (uData && uData.items && uData.items.length > 0) {
+                var item = uData.items[0];
+                var fullEn = [item.brand || '', item.title || ''].filter(Boolean).join(' ').replace(/\s+/g, ' ').toUpperCase();
+                if (fullEn) {
+                  document.getElementById('npNameEn').value = fullEn;
+                  banner.style.color = '#4ade80';
+                  banner.innerText = '✅ Found Online! Enter Selling Price / تم العثور على الصنف - أدخل السعر';
+                  translateEnglishToArabicBrandSafe(fullEn);
+                  document.getElementById('npSellPrice').focus();
+                  return;
+                }
+              }
+              throw new Error('Not in online DB');
+            });
+        })
+        .catch(function() {
+          banner.style.color = '#f59e0b';
+          banner.innerText = 'ℹ️ Local Item (Not in Online DB) — Type Name & Price / أدخل الاسم والسعر';
+          document.getElementById('npNameEn').focus();
+        });
+    }
+
     function scheduleAutoTranslate(text) {
       if (translateTimer) clearTimeout(translateTimer);
       translateTimer = setTimeout(function() {
-        translateEnglishToArabic(text);
-      }, 700);
+        translateEnglishToArabicBrandSafe(text);
+      }, 650);
     }
 
-    function translateEnglishToArabic(enText) {
-      var q = (enText || '').trim();
-      if (!q) return;
+    function translateEnglishToArabicBrandSafe(enText) {
+      var raw = (enText || '').trim();
+      if (!raw) return;
       var statusEl = document.getElementById('transStatus');
       statusEl.innerText = '⏳ Translating...';
-      fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(q) + '&langpair=en|ar')
+
+      var upper = raw.toUpperCase();
+      var matchedBrandAr = '';
+      var remainingEn = upper;
+
+      // Check longest brand names first so multi-word brands match accurately
+      var brandKeys = Object.keys(BRAND_DICTIONARY).sort(function(a, b) { return b.length - a.length; });
+      for (var i = 0; i < brandKeys.length; i++) {
+        var bKey = brandKeys[i];
+        var regex = new RegExp('\\b' + bKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+        if (regex.test(remainingEn)) {
+          matchedBrandAr = BRAND_DICTIONARY[bKey];
+          remainingEn = remainingEn.replace(regex, '').replace(/\s+/g, ' ').trim();
+          break;
+        }
+      }
+
+      if (!remainingEn && matchedBrandAr) {
+        document.getElementById('npNameAr').value = matchedBrandAr;
+        statusEl.innerText = '✅ Brand Matched';
+        return;
+      }
+
+      fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(remainingEn.toLowerCase()) + '&langpair=en|ar')
         .then(function(r) { return r.json(); })
         .then(function(data) {
-          if (data && data.responseData && data.responseData.translatedText) {
-            document.getElementById('npNameAr').value = data.responseData.translatedText;
-            statusEl.innerText = '✅ Auto Arabic';
+          var transDesc = (data && data.responseData && data.responseData.translatedText) ? data.responseData.translatedText.trim() : '';
+          var finalAr = [matchedBrandAr, transDesc].filter(Boolean).join(' ').trim();
+          if (finalAr) {
+            document.getElementById('npNameAr').value = finalAr;
+            statusEl.innerText = matchedBrandAr ? '✅ Brand-Safe Arabic' : '✅ Auto Arabic';
           } else {
             statusEl.innerText = '';
           }
         })
-        .catch(function() { statusEl.innerText = ''; });
+        .catch(function() {
+          if (matchedBrandAr) document.getElementById('npNameAr').value = matchedBrandAr;
+          statusEl.innerText = '';
+        });
     }
 
     function calcNewProdCost(source) {
@@ -911,11 +1122,11 @@
       var addRow = document.createElement('div');
       addRow.className = 'suggestion-row';
       addRow.style.background = '#1e293b';
-      addRow.innerHTML = '<div style="color:#f59e0b; font-weight:bold;">➕ Add "' + q + '" as New Product / إضافة صنف جديد</div><div style="color:#38bdf8;">Create →</div>';
+      addRow.innerHTML = '<div style="color:#f59e0b; font-weight:bold;">➕ Add "' + q + '" as New Product / إضافة صنف جديد</div><div style="color:#38bdf8;">Search Online →</div>';
       addRow.onclick = function() {
         dd.style.display = 'none';
         document.getElementById('itemSearchInput').value = '';
-        openAddProductModal(q);
+        openAddProductModal(q, true);
       };
       dd.appendChild(addRow);
       dd.style.display = 'block';
@@ -943,8 +1154,8 @@
         addItemToCartOrStock(found);
         showToastMsg('✅ ' + found.name_en);
       } else {
-        showToastMsg('🆕 New Barcode: ' + code);
-        openAddProductModal(code);
+        // Trigger Quick Add Modal + Automatic Online Global Barcode Lookup!
+        openAddProductModal(code, true);
       }
     }
 
