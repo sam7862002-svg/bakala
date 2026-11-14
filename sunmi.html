@@ -5,66 +5,85 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>SAMPOS Cloud POS (PC / Mobile / SUNMI)</title>
+  <title>SAMPOS Cloud POS (Desktop / Mobile / SUNMI)</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: #0f172a; color: #f8fafc; padding: 10px; padding-bottom: 90px; }
-    .container { max-width: 720px; margin: 0 auto; }
+    body { background-color: #0f172a; color: #f8fafc; padding: 10px; padding-bottom: 40px; }
+    .container { width: 100%; max-width: 1440px; margin: 0 auto; }
 
     .top-bar {
       display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 10px; background: #1e293b; padding: 8px 12px;
+      margin-bottom: 10px; background: #1e293b; padding: 10px 14px;
       border-radius: 10px; border: 1px solid #334155;
     }
-    .top-bar h2 { font-size: 14px; font-weight: 800; color: #38bdf8; }
-    .top-btns { display: flex; gap: 5px; align-items: center; }
-    .btn-icon { background: #334155; color: #fff; border: 1px solid #475569; padding: 6px 9px; border-radius: 6px; font-size: 11.5px; font-weight: bold; cursor: pointer; }
+    .top-bar h2 { font-size: 15px; font-weight: 800; color: #38bdf8; }
+    .top-btns { display: flex; gap: 6px; align-items: center; }
+    .btn-icon { background: #334155; color: #fff; border: 1px solid #475569; padding: 7px 11px; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-icon:hover { background: #475569; }
     .btn-recent { background: #8b5cf6; border-color: #a78bfa; }
 
-    .mode-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; margin-bottom: 10px; }
+    .mode-selector { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 10px; }
     .mode-btn {
       background: #1e293b; border: 1px solid #475569; color: #94a3b8;
-      padding: 9px 2px; border-radius: 8px; font-size: 11px; font-weight: 800;
-      cursor: pointer; text-align: center;
+      padding: 10px 4px; border-radius: 8px; font-size: 12px; font-weight: 800;
+      cursor: pointer; text-align: center; transition: 0.15s;
     }
     .mode-btn.active { background: #2563eb; color: #fff; border-color: #60a5fa; }
+
+    /* RESPONSIVE DESKTOP SPLIT-SCREEN vs MOBILE STACK */
+    .pos-workspace {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    @media (min-width: 900px) {
+      .pos-workspace {
+        display: grid;
+        grid-template-columns: 1.45fr 1fr;
+        gap: 14px;
+        align-items: start;
+      }
+      .left-col { display: flex; flex-direction: column; gap: 10px; }
+      .right-col { display: flex; flex-direction: column; gap: 10px; position: sticky; top: 10px; }
+      .cart-scroll-area { max-height: 58vh; overflow-y: auto; }
+    }
 
     .submode-bar {
       display: flex; gap: 6px; margin-bottom: 10px; background: #1e293b; padding: 6px; border-radius: 8px; border: 1px solid #334155;
     }
     .submode-btn {
-      flex: 1; padding: 7px; font-size: 12px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: #94a3b8;
+      flex: 1; padding: 8px; font-size: 12px; font-weight: 700; border-radius: 6px; border: none; cursor: pointer; background: transparent; color: #94a3b8;
     }
     .submode-btn.active { background: #0284c7; color: #fff; }
     .submode-btn.return-active { background: #dc2626; color: #fff; }
 
     .card {
       background: #1e293b; border-radius: 10px; border: 1px solid #334155;
-      padding: 12px; margin-bottom: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      padding: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.3);
     }
     .card-header { font-size: 13px; font-weight: 700; color: #38bdf8; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
 
     .action-grid { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; margin-bottom: 8px; position: relative; }
     .search-input, .form-input {
       width: 100%; background: #0f172a; border: 1.5px solid #38bdf8; color: #ffffff !important;
-      padding: 10px; border-radius: 8px; font-size: 13.5px; font-weight: bold;
+      padding: 10px 12px; border-radius: 8px; font-size: 14px; font-weight: bold;
     }
     .form-input { border-color: #475569; }
     .btn-camera {
-      background: #059669; color: #fff; border: none; padding: 10px 12px;
+      background: #059669; color: #fff; border: none; padding: 10px 14px;
       border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer; white-space: nowrap;
     }
     .btn-add-new {
-      background: #d97706; color: #fff; border: none; padding: 10px 10px;
-      border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; white-space: nowrap;
+      background: #d97706; color: #fff; border: none; padding: 10px 12px;
+      border-radius: 8px; font-size: 12.5px; font-weight: bold; cursor: pointer; white-space: nowrap;
     }
 
     .search-suggestions {
       position: absolute; top: 100%; left: 0; right: 0; background: #0f172a;
-      border: 1px solid #38bdf8; border-radius: 8px; max-height: 240px;
-      overflow-y: auto; z-index: 500; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.8);
+      border: 1px solid #38bdf8; border-radius: 8px; max-height: 260px;
+      overflow-y: auto; z-index: 500; display: none; box-shadow: 0 10px 25px rgba(0,0,0,0.85);
     }
     .suggestion-row {
       padding: 9px 10px; border-bottom: 1px solid #1e293b; cursor: pointer;
@@ -89,27 +108,27 @@
       z-index: 9999; display: none; box-shadow: 0 6px 20px rgba(0,0,0,0.6); color: #fff;
     }
 
-    .cart-table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 6px; }
-    .cart-table th { background: #0f172a; color: #94a3b8; padding: 6px 4px; text-align: left; font-size: 11px; }
-    .cart-table td { padding: 8px 4px; border-bottom: 1px solid #334155; }
-    .cart-qty-input { width: 48px; background: #0f172a; border: 1px solid #475569; color: #fff; text-align: center; padding: 6px 2px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-    .cart-price-input { width: 68px; background: #0f172a; border: 1px solid #475569; color: #f59e0b; text-align: right; padding: 6px 4px; border-radius: 4px; font-weight: bold; font-size: 14px; }
-    .btn-del { color: #ef4444; background: none; border: none; font-size: 18px; cursor: pointer; padding: 0 4px; }
+    .cart-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+    .cart-table th { background: #0f172a; color: #94a3b8; padding: 8px 6px; text-align: left; font-size: 11.5px; position: sticky; top: 0; }
+    .cart-table td { padding: 9px 6px; border-bottom: 1px solid #334155; }
+    .cart-qty-input { width: 54px; background: #0f172a; border: 1px solid #475569; color: #fff; text-align: center; padding: 6px 2px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+    .cart-price-input { width: 74px; background: #0f172a; border: 1px solid #475569; color: #f59e0b; text-align: right; padding: 6px 4px; border-radius: 4px; font-weight: bold; font-size: 14px; }
+    .btn-del { color: #ef4444; background: none; border: none; font-size: 19px; cursor: pointer; padding: 0 6px; }
 
-    .summary-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 10px; margin-top: 10px; }
-    .summary-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 12.5px; color: #94a3b8; }
-    .summary-row.total { font-size: 17px; font-weight: 900; color: #38bdf8; border-top: 1px solid #334155; padding-top: 6px; margin-top: 6px; }
+    .summary-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; }
+    .summary-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 13px; color: #94a3b8; }
+    .summary-row.total { font-size: 20px; font-weight: 900; color: #38bdf8; border-top: 1px solid #334155; padding-top: 8px; margin-top: 6px; }
 
     .pay-methods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 10px; }
     .pay-btn {
-      padding: 10px 4px; font-size: 12px; font-weight: 800; border-radius: 6px; border: 1px solid #475569;
+      padding: 11px 4px; font-size: 12px; font-weight: 800; border-radius: 6px; border: 1px solid #475569;
       background: #0f172a; color: #94a3b8; cursor: pointer; text-align: center;
     }
     .pay-btn.active { background: #0284c7; color: #fff; border-color: #38bdf8; }
 
     .checkout-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
     .btn-checkout {
-      border: none; padding: 12px 6px; border-radius: 8px; font-size: 12px; font-weight: 800; cursor: pointer; text-align: center;
+      border: none; padding: 13px 6px; border-radius: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; text-align: center;
     }
     .btn-sunmi { background: #f97316; color: #fff; grid-column: span 2; font-size: 14px; }
     .btn-thermal { background: #16a34a; color: #fff; }
@@ -124,7 +143,7 @@
     }
     .modal-card {
       background: #1e293b; border: 1px solid #38bdf8; border-radius: 12px;
-      padding: 16px; width: 100%; max-width: 480px; max-height: 90vh; display: flex; flex-direction: column;
+      padding: 16px; width: 100%; max-width: 500px; max-height: 90vh; display: flex; flex-direction: column;
     }
     .modal-body { overflow-y: auto; flex: 1; }
     .form-group { margin-bottom: 9px; }
@@ -140,7 +159,6 @@
       padding: 12px; text-align: center; margin-top: 10px;
     }
 
-    /* Off-screen receipt / A4 rendering */
     #hiddenReceiptCard {
       position: absolute; left: -9999px; top: 0; width: 380px;
       background: #ffffff; color: #000000; padding: 16px; font-family: monospace, sans-serif;
@@ -150,7 +168,6 @@
     .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
     .rcpt-table td { padding: 4px 2px; }
 
-    /* Dedicated Print Styles for PC Thermal (80mm) & A4 */
     @media print {
       body * { visibility: hidden; }
       #printAreaContainer, #printAreaContainer * { visibility: visible; }
@@ -166,169 +183,186 @@
   <div id="printAreaContainer" style="display:none;"></div>
 
   <div class="container">
+    <!-- Top Header Bar -->
     <div class="top-bar">
       <h2>☁️ SAMPOS Cloud POS</h2>
       <div class="top-btns">
-        <button type="button" class="btn-icon btn-recent" onclick="openRecentBillsModal()">📜 Bills</button>
+        <button type="button" class="btn-icon btn-recent" onclick="openRecentBillsModal()">📜 Bills / الفواتير</button>
         <button type="button" class="btn-icon" onclick="loadInitialData(true)">🔄 Sync</button>
         <button type="button" class="btn-icon" onclick="openServerConfigModal()">⚙️</button>
       </div>
     </div>
 
+    <!-- Mode Selector Bar -->
     <div class="mode-selector">
-      <button type="button" class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales</button>
-      <button type="button" class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
-      <button type="button" class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock</button>
-      <button type="button" class="mode-btn" id="modeTag" onclick="switchMainMode('tag')">🏷️ Tag</button>
-      <button type="button" class="mode-btn" onclick="openAddProductModal('')">➕ New Item</button>
+      <button type="button" class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales / مبيعات</button>
+      <button type="button" class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase / مشتريات</button>
+      <button type="button" class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock / مخزون</button>
+      <button type="button" class="mode-btn" id="modeTag" onclick="switchMainMode('tag')">🏷️ Tag / ملصق</button>
+      <button type="button" class="mode-btn" onclick="openAddProductModal('')">➕ New / جديد</button>
     </div>
 
-    <div class="submode-bar" id="submodeBar">
-      <button type="button" class="submode-btn active" id="submodeNormal" onclick="setSubmode('normal')">✅ Normal Billing</button>
-      <button type="button" class="submode-btn" id="submodeReturn" onclick="setSubmode('return')">🔄 Return / Refund</button>
-    </div>
+    <!-- MAIN WORKSPACE: Split-Screen on PC Desktop, Stacked on Mobile/SUNMI -->
+    <div class="pos-workspace">
 
-    <div class="card" id="partyCard">
-      <div class="card-header">
-        <span id="partyHeaderTitle">👤 Customer (കസ്റ്റമർ)</span>
-        <span id="partyBalDisplay" style="font-weight:900; color:#4ade80;">Due: 0.00 SAR</span>
-      </div>
-      <div style="position: relative;">
-        <input type="text" id="partySearchInput" class="form-input" placeholder="Type Customer Name or Phone..." oninput="handlePartySearch(this.value)">
-        <div id="partySuggestions" class="search-suggestions"></div>
-      </div>
-      <div id="partyQuickAction" style="display:none; margin-top:6px; justify-content:flex-end;">
-        <button type="button" class="btn-icon" style="background:#0284c7; padding:5px 10px; font-size:11px;" onclick="openPaymentVoucherModal()">💵 വരവ് / പേയ്‌മെന്റ് നൽകാൻ</button>
-      </div>
-      <div id="suppBillGroup" style="display:none; margin-top: 6px;">
-        <label style="font-size: 11px; color: #94a3b8; font-weight: bold;">Supplier Invoice No *</label>
-        <input type="text" id="inputSuppBillNo" class="form-input" placeholder="e.g. 84591">
-      </div>
-    </div>
+      <!-- LEFT PANEL: Search, Scanner, Stock/Tag Tools & Bill Cart Items -->
+      <div class="left-col">
+        <div class="card">
+          <div class="card-header">
+            <span>🔍 Barcode Scanner / Product Search (بحث / باركود)</span>
+            <span id="serverStatusBadge" style="font-size:11px; color:#f59e0b;">⏳ Syncing...</span>
+          </div>
 
-    <div class="card">
-      <div class="card-header">
-        <span>🔍 Barcode Scanner / Product Search</span>
-        <span id="serverStatusBadge" style="font-size:11px; color:#f59e0b;">⏳ Syncing...</span>
-      </div>
+          <div class="action-grid">
+            <div style="position: relative;">
+              <input type="text" id="itemSearchInput" class="search-input" placeholder="Scan Barcode or Type Item / باركود أو اسم الصنف..." oninput="handleItemSearch(this.value)" onkeydown="handleItemKeyDown(event)">
+              <div id="itemSuggestions" class="search-suggestions"></div>
+            </div>
+            <button type="button" class="btn-camera" onclick="startUniversalScanner()" id="btnCamToggle">📷 Scan</button>
+            <button type="button" class="btn-add-new" onclick="openAddProductModal(document.getElementById('itemSearchInput').value.trim())">➕ Item</button>
+          </div>
 
-      <div class="action-grid">
-        <div style="position: relative;">
-          <input type="text" id="itemSearchInput" class="search-input" placeholder="🔍 Scan Barcode OR Type Item Name..." oninput="handleItemSearch(this.value)" onkeydown="handleItemKeyDown(event)">
-          <div id="itemSuggestions" class="search-suggestions"></div>
+          <div id="scannerWrapper">
+            <video id="scannerVideo" playsinline autoplay muted></video>
+            <div class="scanner-laser"></div>
+          </div>
+
+          <!-- Stock Take Box -->
+          <div id="stockTakeBox" style="display:none; background:#0f172a; padding:12px; border-radius:8px; margin-top:6px;">
+            <div style="font-size:14px; font-weight:bold; color:#38bdf8;" id="stkItemName">Search or scan item / ابحث أو امسح الصنف</div>
+            <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Current Stock / الكمية الحالية: <b id="stkCurrentStock" style="color:#4ade80; font-size:15px;">0</b></div>
+            <div style="display:flex; gap:6px; margin-top:8px;">
+              <input type="number" id="inputPhysicalCount" class="form-input" style="font-size:16px; text-align:center;" placeholder="New Qty / الكمية الجديدة">
+              <button type="button" class="btn-primary" style="width:140px;" onclick="saveStockTake()">💾 Update / تحديث</button>
+            </div>
+          </div>
+
+          <!-- DB Shelf Tag & Barcode Print Box -->
+          <div id="shelfTagBox" style="display:none; background:#0f172a; padding:12px; border-radius:8px; margin-top:6px;">
+            <div style="font-size:12.5px; font-weight:bold; color:#38bdf8;">🏷️ Shelf Tag & Barcode Printer / طباعة ملصق السعر</div>
+            <div class="tag-preview" id="tagPreviewArea">
+              <div style="font-size:15px; font-weight:800;" id="tagPrevName">Search or scan item above</div>
+              <div style="font-size:26px; font-weight:900; margin:4px 0;" id="tagPrevPrice">0.00 SAR</div>
+              <div style="font-size:11px; color:#475569;">(Incl. 15% VAT / شامل الضريبة)</div>
+              <div style="font-family:monospace; font-size:13px; font-weight:bold; margin-top:6px; letter-spacing:2px;" id="tagPrevBarcode">||||| |||| |||||</div>
+              <div style="font-size:11px; color:#334155; margin-top:2px;" id="tagPrevCode">Code: -</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+              <label style="font-size:12px; color:#94a3b8; font-weight:bold;">Copies / العدد:</label>
+              <input type="number" id="tagPrintQty" class="form-input" value="1" min="1" max="50" style="width:65px; text-align:center;">
+              <button type="button" class="btn-primary" style="background:#f97316; flex:1;" onclick="printSelectedShelfTag('tag')">🏷️ Print Tag / ملصق</button>
+            </div>
+            <button type="button" class="btn-primary" style="background:#0284c7; margin-top:8px;" onclick="printSelectedShelfTag('barcode')">📊 Print Barcode Only / باركود فقط</button>
+          </div>
         </div>
-        <button type="button" class="btn-camera" onclick="startUniversalScanner()" id="btnCamToggle">📷 Scan</button>
-        <button type="button" class="btn-add-new" onclick="openAddProductModal(document.getElementById('itemSearchInput').value.trim())">➕ Item</button>
-      </div>
 
-      <div id="scannerWrapper">
-        <video id="scannerVideo" playsinline autoplay muted></video>
-        <div class="scanner-laser"></div>
-      </div>
+        <!-- Cart Items Table Card -->
+        <div class="card" id="cartCard">
+          <div class="card-header">
+            <span>🛒 Bill Cart Items / الأصناف (<span id="cartCount">0</span>)</span>
+            <button type="button" onclick="clearCart()" style="background:none; border:none; color:#f87171; font-size:12px; font-weight:bold; cursor:pointer;">🗑️ Clear / مسح</button>
+          </div>
 
-      <!-- Stock Take Box -->
-      <div id="stockTakeBox" style="display:none; background:#0f172a; padding:10px; border-radius:8px; margin-top:6px;">
-        <div style="font-size:14px; font-weight:bold; color:#38bdf8;" id="stkItemName">Search or scan item to update stock</div>
-        <div style="font-size:12px; color:#94a3b8; margin-top:4px;">Current Stock: <b id="stkCurrentStock" style="color:#4ade80; font-size:15px;">0</b></div>
-        <div style="display:flex; gap:6px; margin-top:8px;">
-          <input type="number" id="inputPhysicalCount" class="form-input" style="font-size:16px; text-align:center;" placeholder="New Qty">
-          <button type="button" class="btn-primary" style="width:120px;" onclick="saveStockTake()">💾 Update</button>
+          <div class="cart-scroll-area">
+            <table class="cart-table">
+              <thead>
+                <tr>
+                  <th>Item / الصنف</th>
+                  <th style="text-align:center;">Qty / الكمية</th>
+                  <th style="text-align:right;">Price / السعر</th>
+                  <th style="text-align:right;">Total / المجموع</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="cartTableBody">
+                <tr><td colspan="5" style="text-align:center; color:#64748b; padding:24px;">Search item or tap 📷 Scan / ابحث أو امسح الباركود</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- DB Shelf Tag & Barcode Print Box -->
-      <div id="shelfTagBox" style="display:none; background:#0f172a; padding:10px; border-radius:8px; margin-top:6px;">
-        <div style="font-size:12.5px; font-weight:bold; color:#38bdf8;">🏷️ DB Shelf Tag & Barcode Printer</div>
-        <div class="tag-preview" id="tagPreviewArea">
-          <div style="font-size:15px; font-weight:800;" id="tagPrevName">Search or scan item above</div>
-          <div style="font-size:26px; font-weight:900; margin:4px 0;" id="tagPrevPrice">0.00 SAR</div>
-          <div style="font-size:11px; color:#475569;">(Incl. 15% VAT)</div>
-          <div style="font-family:monospace; font-size:13px; font-weight:bold; margin-top:6px; letter-spacing:2px;" id="tagPrevBarcode">||||| |||| |||||</div>
-          <div style="font-size:11px; color:#334155; margin-top:2px;" id="tagPrevCode">Code: -</div>
+      <!-- RIGHT PANEL: Submode, Customer/Supplier, Totals, Payment & Print Actions -->
+      <div class="right-col" id="rightActionPanel">
+        <div class="submode-bar" id="submodeBar" style="margin-bottom:0;">
+          <button type="button" class="submode-btn active" id="submodeNormal" onclick="setSubmode('normal')">✅ Normal / فاتورة</button>
+          <button type="button" class="submode-btn" id="submodeReturn" onclick="setSubmode('return')">🔄 Return / مرتجع</button>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; margin-top:10px;">
-          <label style="font-size:12px; color:#94a3b8; font-weight:bold;">Copies:</label>
-          <input type="number" id="tagPrintQty" class="form-input" value="1" min="1" max="50" style="width:65px; text-align:center;">
-          <button type="button" class="btn-primary" style="background:#f97316; flex:1;" onclick="printSelectedShelfTag('tag')">🏷️ Print Shelf Tag</button>
+
+        <div class="card" id="partyCard">
+          <div class="card-header">
+            <span id="partyHeaderTitle">👤 Customer / العميل</span>
+            <span id="partyBalDisplay" style="font-weight:900; color:#4ade80;">Due: 0.00 SAR</span>
+          </div>
+          <div style="position: relative;">
+            <input type="text" id="partySearchInput" class="form-input" placeholder="Search Name or Phone / ابحث بالاسم أو الجوال..." oninput="handlePartySearch(this.value)">
+            <div id="partySuggestions" class="search-suggestions"></div>
+          </div>
+          <div id="partyQuickAction" style="display:none; margin-top:6px; justify-content:flex-end;">
+            <button type="button" class="btn-icon" style="background:#0284c7; padding:5px 10px; font-size:11px;" onclick="openPaymentVoucherModal()">💵 Receipt / Payment (سند قبض / صرف)</button>
+          </div>
+          <div id="suppBillGroup" style="display:none; margin-top: 8px;">
+            <label style="font-size: 11px; color: #94a3b8; font-weight: bold;">Supplier Invoice No / رقم فاتورة المورد *</label>
+            <input type="text" id="inputSuppBillNo" class="form-input" placeholder="e.g. 84591">
+          </div>
         </div>
-        <button type="button" class="btn-primary" style="background:#0284c7; margin-top:8px;" onclick="printSelectedShelfTag('barcode')">📊 Print Barcode Only</button>
-      </div>
-    </div>
 
-    <div class="card" id="cartCard">
-      <div class="card-header">
-        <span>🛒 Items (<span id="cartCount">0</span>)</span>
-        <button type="button" onclick="clearCart()" style="background:none; border:none; color:#f87171; font-size:12px; font-weight:bold; cursor:pointer;">🗑️ Clear</button>
-      </div>
+        <div class="card" id="checkoutSummaryCard">
+          <div class="summary-box">
+            <div class="summary-row"><span>Subtotal (Excl. VAT) / المجموع الفرعي:</span><span id="lblSubtotal">0.00 SAR</span></div>
+            <div class="summary-row"><span>VAT (15%) / الضريبة:</span><span id="lblVat">0.00 SAR</span></div>
+            <div class="summary-row total"><span>NET TOTAL / الإجمالي:</span><span id="lblNetTotal">0.00 SAR</span></div>
+          </div>
 
-      <table class="cart-table">
-        <thead>
-          <tr>
-            <th>Item & Cost(Inc.VAT)</th>
-            <th style="text-align:center;">Qty</th>
-            <th style="text-align:right;">Price</th>
-            <th style="text-align:right;">Total</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cartTableBody">
-          <tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Search item or tap 📷 Scan</td></tr>
-        </tbody>
-      </table>
+          <div class="pay-methods">
+            <button type="button" class="pay-btn active" id="payBtnCash" onclick="setPaymentMethod('CASH')">💵 CASH / نقدي</button>
+            <button type="button" class="pay-btn" id="payBtnCard" onclick="setPaymentMethod('BANK')">💳 CARD / شبكة</button>
+            <button type="button" class="pay-btn" id="payBtnCredit" onclick="setPaymentMethod('CREDIT')">📑 CREDIT / آجل</button>
+          </div>
 
-      <div class="summary-box">
-        <div class="summary-row"><span>Subtotal (Excl. VAT):</span><span id="lblSubtotal">0.00 SAR</span></div>
-        <div class="summary-row"><span>VAT (15%):</span><span id="lblVat">0.00 SAR</span></div>
-        <div class="summary-row total"><span>NET TOTAL:</span><span id="lblNetTotal">0.00 SAR</span></div>
+          <div class="checkout-grid" id="checkoutSection">
+            <button type="button" class="btn-checkout btn-sunmi" onclick="executeCheckout('sunmi')">📟 Save & Print (SUNMI 58mm) / حفظ وطباعة</button>
+            <button type="button" class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🧾 Thermal 80mm</button>
+            <button type="button" class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 A4 Print</button>
+            <button type="button" class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save Only / حفظ</button>
+            <button type="button" class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp / واتساب</button>
+          </div>
+
+          <div id="purchaseActionSection" style="display:none; margin-top:12px;">
+            <button type="button" class="btn-primary" style="background:#059669; padding:14px;" id="btnSavePurchase" onclick="executePurchaseSave()">📦 Save Purchase / حفظ المشتريات</button>
+          </div>
+        </div>
       </div>
 
-      <div class="pay-methods">
-        <button type="button" class="pay-btn active" id="payBtnCash" onclick="setPaymentMethod('CASH')">💵 CASH</button>
-        <button type="button" class="pay-btn" id="payBtnCard" onclick="setPaymentMethod('BANK')">💳 CARD/BANK</button>
-        <button type="button" class="pay-btn" id="payBtnCredit" onclick="setPaymentMethod('CREDIT')">📑 CREDIT</button>
-      </div>
-
-      <!-- Separate Print Buttons for SUNMI, 80mm Thermal, A4, Cloud Save & WhatsApp -->
-      <div class="checkout-grid" id="checkoutSection">
-        <button type="button" class="btn-checkout btn-sunmi" onclick="executeCheckout('sunmi')">📟 Save & Print (SUNMI 58mm)</button>
-        <button type="button" class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🧾 Thermal 80mm</button>
-        <button type="button" class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 A4 Print</button>
-        <button type="button" class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save Only</button>
-        <button type="button" class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp Image</button>
-      </div>
-
-      <div id="purchaseActionSection" style="display:none; margin-top:12px;">
-        <button type="button" class="btn-primary" style="background:#059669; padding:14px;" id="btnSavePurchase" onclick="executePurchaseSave()">📦 Save Purchase</button>
-      </div>
     </div>
   </div>
 
-  <!-- QUICK ADD NEW PRODUCT MODAL (Auto English -> Arabic + Dual VAT Cost) -->
+  <!-- QUICK ADD NEW PRODUCT MODAL -->
   <div class="modal-overlay" id="addProductModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <h3 style="color:#f59e0b; font-size:16px;">➕ Add New Product (പുതിയ ഐറ്റം)</h3>
+        <h3 style="color:#f59e0b; font-size:15px;">➕ Add New Product / إضافة صنف جديد</h3>
         <button type="button" onclick="closeAddProductModal()" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✖</button>
       </div>
       <div class="modal-body">
         <div class="grid-2">
           <div class="form-group">
-            <label>Barcode 1 (ബാർകോഡ്) *</label>
+            <label>Barcode / الباركود *</label>
             <input type="text" id="npBarcode1" class="form-input" placeholder="628100...">
           </div>
           <div class="form-group">
-            <label>Item Code / PLU</label>
+            <label>Item Code / كود الصنف</label>
             <input type="text" id="npItemCode" class="form-input" placeholder="Auto">
           </div>
         </div>
 
         <div class="form-group">
-          <label>Item Name (English) * <span style="color:#38bdf8; font-weight:normal;">(ടൈപ്പ് ചെയ്യുമ്പോൾ അറബി തനിയെ വരും)</span></label>
+          <label>Item Name (English) * <span style="color:#38bdf8; font-weight:normal;">(Auto-translates to Arabic)</span></label>
           <input type="text" id="npNameEn" class="form-input" placeholder="e.g. ALMARAI FRESH MILK 1L" oninput="scheduleAutoTranslate(this.value)" onblur="translateEnglishToArabic(this.value)">
         </div>
 
         <div class="form-group">
-          <label>Item Name (Arabic / عربي) <span id="transStatus" style="color:#4ade80; font-size:10px;"></span></label>
+          <label>Item Name (Arabic / اسم الصنف بالعربي) <span id="transStatus" style="color:#4ade80; font-size:10px;"></span></label>
           <div style="display:flex; gap:6px;">
             <input type="text" id="npNameAr" class="form-input" dir="rtl" placeholder="اسم المنتج بالعربي">
             <button type="button" class="btn-icon" onclick="translateEnglishToArabic(document.getElementById('npNameEn').value)" title="Translate Now">🌐</button>
@@ -337,38 +371,38 @@
 
         <div class="grid-2">
           <div class="form-group">
-            <label>Unit (യൂണിറ്റ്)</label>
+            <label>Unit / الوحدة</label>
             <select id="npUnit" class="form-input">
-              <option value="PCS">PCS (എണ്ണം)</option>
-              <option value="BOX">BOX (ബോക്സ്)</option>
-              <option value="CTN">CTN (കാർട്ടൺ)</option>
-              <option value="KG">KG (കിലോ)</option>
-              <option value="PKT">PKT (പാക്കറ്റ്)</option>
+              <option value="PCS">PCS / حبة</option>
+              <option value="BOX">BOX / علبة</option>
+              <option value="CTN">CTN / كرتون</option>
+              <option value="KG">KG / كيلو</option>
+              <option value="PKT">PKT / باكت</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Opening Stock (സ്റ്റോക്ക്)</label>
+            <label>Opening Stock / الكمية</label>
             <input type="number" step="any" id="npStock" class="form-input" value="1" onclick="this.select()">
           </div>
         </div>
 
         <div class="grid-2">
           <div class="form-group">
-            <label>Cost Excl. VAT (വാങ്ങിയ വില)</label>
+            <label>Cost Excl. VAT / التكلفة بدون ضريبة</label>
             <input type="number" step="0.01" id="npCostExcl" class="form-input" placeholder="0.00" oninput="calcNewProdCost('excl')" onclick="this.select()">
           </div>
           <div class="form-group">
-            <label>Cost Incl. 15% VAT</label>
+            <label>Cost Incl. 15% VAT / التكلفة شامل الضريبة</label>
             <input type="number" step="0.01" id="npCostIncl" class="form-input" placeholder="0.00" oninput="calcNewProdCost('incl')" onclick="this.select()">
           </div>
         </div>
 
         <div class="form-group">
-          <label style="color:#4ade80;">Selling Price Incl. 15% VAT (വില്പന വില) *</label>
+          <label style="color:#4ade80;">Selling Price Incl. 15% VAT / سعر البيع شامل الضريبة *</label>
           <input type="number" step="0.01" id="npSellPrice" class="form-input" style="border-color:#4ade80; font-size:16px;" placeholder="0.00" onclick="this.select()">
         </div>
 
-        <button type="button" class="btn-primary" style="background:#059669; margin-top:6px;" id="btnSaveNewProd" onclick="saveNewProductToCloud()">💾 Save Product & Add to POS</button>
+        <button type="button" class="btn-primary" style="background:#059669; margin-top:6px;" id="btnSaveNewProd" onclick="saveNewProductToCloud()">💾 Save & Add / حفظ وإضافة</button>
       </div>
     </div>
   </div>
@@ -377,7 +411,7 @@
   <div class="modal-overlay" id="recentBillsModal">
     <div class="modal-card">
       <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-        <h3 style="color:#a78bfa; font-size:15px;">📜 Recent Invoices / മുൻ ബില്ലുകൾ</h3>
+        <h3 style="color:#a78bfa; font-size:15px;">📜 Recent Invoices / الفواتير السابقة</h3>
         <button type="button" onclick="document.getElementById('recentBillsModal').style.display='none'" style="background:none; border:none; color:#94a3b8; font-size:18px; cursor:pointer;">✖</button>
       </div>
       <div class="modal-body" id="recentBillsList"></div>
@@ -387,28 +421,28 @@
   <!-- Payment Voucher Modal -->
   <div class="modal-overlay" id="paymentVoucherModal">
     <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;" id="lblVoucherTitle">💵 Payment / Receipt Entry</h3>
+      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;" id="lblVoucherTitle">💵 Receipt / Payment Voucher</h3>
       <div class="form-group">
-        <label>Selected Party:</label>
+        <label>Selected Party / الاسم:</label>
         <input type="text" id="vPartyName" class="form-input" readonly style="color:#38bdf8;">
       </div>
       <div class="form-group">
-        <label>Current Balance:</label>
+        <label>Current Balance / الرصيد الحالي:</label>
         <input type="text" id="vCurrentBal" class="form-input" readonly style="color:#f59e0b;">
       </div>
       <div class="form-group">
-        <label>Amount (SAR) *:</label>
+        <label>Amount (SAR) / المبلغ *:</label>
         <input type="number" step="0.01" id="vAmount" class="form-input" placeholder="0.00" onclick="this.select()">
       </div>
       <div class="form-group">
-        <label>Payment Mode:</label>
+        <label>Payment Mode / طريقة الدفع:</label>
         <select id="vPayMode" class="form-input">
-          <option value="CASH">CASH</option>
-          <option value="BANK">BANK / CARD</option>
+          <option value="CASH">CASH / نقدي</option>
+          <option value="BANK">BANK / CARD / شبكة</option>
         </select>
       </div>
-      <button type="button" class="btn-primary" onclick="submitPartyPayment()">💾 Save Voucher</button>
-      <button type="button" class="btn-icon" style="width:100%; margin-top:8px;" onclick="document.getElementById('paymentVoucherModal').style.display='none'">Cancel</button>
+      <button type="button" class="btn-primary" onclick="submitPartyPayment()">💾 Save Voucher / حفظ السند</button>
+      <button type="button" class="btn-icon" style="width:100%; margin-top:8px;" onclick="document.getElementById('paymentVoucherModal').style.display='none'">Cancel / إلغاء</button>
     </div>
   </div>
 
@@ -417,58 +451,54 @@
     <div class="modal-card">
       <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;">☁️ Supabase Cloud & Printer Settings</h3>
       <div class="form-group">
-        <label>Supabase Project URL (Fixed Default):</label>
+        <label>Supabase Project URL:</label>
         <input type="text" id="cfgSbUrl" class="form-input">
       </div>
       <div class="form-group">
-        <label>Supabase Publishable Key (Fixed Default):</label>
+        <label>Supabase Publishable Key:</label>
         <input type="text" id="cfgSbKey" class="form-input">
       </div>
       <div class="form-group">
-        <label>Shop Local PC Print Server IP (Optional for PC Network Print):</label>
+        <label>Local PC Print Server IP (Optional):</label>
         <input type="text" id="cfgServerIp" class="form-input" placeholder="192.168.100.141">
       </div>
       <div class="form-group">
         <label>Terminal Prefix (e.g. M1 / S1 / PC1):</label>
         <input type="text" id="cfgTerminalId" class="form-input" placeholder="S1">
       </div>
-      <button type="button" class="btn-primary" onclick="saveServerConfig()">💾 Save Settings</button>
-      <button type="button" class="btn-icon" style="width:100%; margin-top:8px;" onclick="document.getElementById('serverModal').style.display='none'">Cancel</button>
+      <button type="button" class="btn-primary" onclick="saveServerConfig()">💾 Save Settings / حفظ</button>
+      <button type="button" class="btn-icon" style="width:100%; margin-top:8px;" onclick="document.getElementById('serverModal').style.display='none'">Cancel / إلغاء</button>
     </div>
   </div>
 
-  <!-- HIDDEN OFF-SCREEN INVOICE RENDERING CONTAINER (For WhatsApp Image) -->
+  <!-- HIDDEN OFF-SCREEN INVOICE RENDERING CONTAINER -->
   <div id="hiddenReceiptCard">
     <div class="rcpt-header">
       <h2 id="rStoreName">STORE NAME</h2>
       <p id="rStoreNameAr">اسم المتجر</p>
-      <p>VAT No: <span id="rStoreVat">300000000000003</span></p>
+      <p>VAT No / الرقم الضريبي: <span id="rStoreVat">300000000000003</span></p>
       <p style="font-weight:bold; margin-top:4px;">SIMPLIFIED TAX INVOICE / فاتورة ضريبية مبسطة</p>
     </div>
     <div style="font-size:11px; margin-bottom:8px; border-bottom:1px dashed #000; padding-bottom:6px;">
       <div>Invoice No: <b id="rInvNo">INV-001</b> | <span id="rInvDate"></span></div>
-      <div>Customer: <span id="rCustName">WALK-IN</span></div>
+      <div>Customer / العميل: <span id="rCustName">WALK-IN</span></div>
     </div>
     <table class="rcpt-table">
-      <thead><tr><th>Item</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr></thead>
+      <thead><tr><th>Item / الصنف</th><th style="text-align:center;">Qty</th><th style="text-align:right;">Price</th><th style="text-align:right;">Total</th></tr></thead>
       <tbody id="rItemsBody"></tbody>
     </table>
     <div style="border-top:1px dashed #000; padding-top:6px; font-size:12px;">
       <div style="display:flex; justify-content:space-between;"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00</span></div>
       <div style="display:flex; justify-content:space-between;"><span>VAT (15%):</span><span id="rVat">0.00</span></div>
-      <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:bold; border-top:1px solid #000; padding-top:4px; margin-top:4px;"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
+      <div style="display:flex; justify-content:space-between; font-size:15px; font-weight:bold; border-top:1px solid #000; padding-top:4px; margin-top:4px;"><span>NET TOTAL / الإجمالي:</span><span id="rNetTotal">0.00 SAR</span></div>
     </div>
     <div style="text-align:center; margin-top:10px;"><div id="rQrCanvas" style="display:inline-block;"></div></div>
   </div>
 
   <script>
-    // =========================================================================
-    // HARDCODED LIVE SUPABASE CREDENTIALS (Never resets on any PC or Mobile!)
-    // =========================================================================
     var LIVE_SB_URL = 'https://kuaepkcztqwxufigxedh.supabase.co';
     var LIVE_SB_KEY = 'sb_publishable_-a-0l-DRJFM9ml2FhnSAxw_7lP1WCOt';
 
-    // Clean out any old wrong key saved in browser localStorage automatically
     (function ensureValidSupabaseKey() {
       var savedKey = localStorage.getItem('sampos_sb_key');
       if (savedKey && savedKey !== LIVE_SB_KEY && savedKey.indexOf('qX_T6777') !== -1) {
@@ -581,7 +611,6 @@
         badge.style.color = '#4ade80';
         if (showToast) showToastMsg('✅ ' + productsList.length + ' Items Synced');
 
-        // Restore cart & auto-process scanned barcode from Native Scanner
         try {
           var savedCart = sessionStorage.getItem('sampos_temp_cart');
           if (savedCart) {
@@ -616,9 +645,6 @@
       loadInitialData(false);
     });
 
-    // =========================================================================
-    // UNIVERSAL SCANNER (Native App Scanner on SUNMI/Android + Web Camera on PC)
-    // =========================================================================
     function startUniversalScanner() {
       var wrap = document.getElementById('scannerWrapper');
       if (wrap.style.display === 'block') {
@@ -626,14 +652,12 @@
         return;
       }
 
-      // If running inside SUNMI V2s / Android SAMPOS APK, launch Native Hardware Scanner
       if (/SUNMI|V2s/i.test(navigator.userAgent)) {
         try { sessionStorage.setItem('sampos_temp_cart', JSON.stringify(cart)); } catch (e) {}
         window.location.href = 'sampos://scan?mode=' + encodeURIComponent(mainMode);
         return;
       }
 
-      // Otherwise (Mobile Chrome or PC Webcam), open Web Camera Scanner
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera not available. Use barcode scanner gun or type barcode.');
         return;
@@ -682,9 +706,6 @@
       document.getElementById('btnCamToggle').innerText = '📷 Scan';
     }
 
-    // =========================================================================
-    // QUICK ADD NEW PRODUCT (Auto Arabic Translation + Dual Cost VAT)
-    // =========================================================================
     function openAddProductModal(prefillBarcode) {
       var nextCode = 'ITM-' + String(productsList.length + 101);
       document.getElementById('npBarcode1').value = prefillBarcode || '';
@@ -753,8 +774,8 @@
       var costExcl = parseFloat(document.getElementById('npCostExcl').value) || 0;
       var sellPrice = parseFloat(document.getElementById('npSellPrice').value);
 
-      if (!nameEn) { alert('ദയവായി സാധനത്തിന്റെ ഇംഗ്ലീഷ് പേര് നൽകുക!'); return; }
-      if (isNaN(sellPrice) || sellPrice <= 0) { alert('ദയവായി വില്പന വില (Selling Price) നൽകുക!'); return; }
+      if (!nameEn) { alert('Please enter English Item Name / الرجاء إدخال اسم الصنف'); return; }
+      if (isNaN(sellPrice) || sellPrice <= 0) { alert('Please enter Selling Price / الرجاء إدخال سعر البيع'); return; }
 
       var btn = document.getElementById('btnSaveNewProd');
       btn.disabled = true;
@@ -779,7 +800,7 @@
           var savedItem = (inserted && inserted[0]) ? inserted[0] : newProd;
           productsList.push(savedItem);
           closeAddProductModal();
-          showToastMsg('✅ New Product Saved: ' + savedItem.name_en);
+          showToastMsg('✅ Saved: ' + savedItem.name_en);
           addItemToCartOrStock(savedItem);
         })
         .catch(function(err) {
@@ -787,13 +808,10 @@
         })
         .finally(function() {
           btn.disabled = false;
-          btn.innerText = '💾 Save Product & Add to POS';
+          btn.innerText = '💾 Save & Add / حفظ وإضافة';
         });
     }
 
-    // =========================================================================
-    // MODE & SEARCH LOGIC
-    // =========================================================================
     function switchMainMode(mode) {
       mainMode = mode;
       document.querySelectorAll('.mode-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -806,15 +824,14 @@
       document.getElementById('partyQuickAction').style.display = 'none';
 
       var isUtility = (mode === 'stock' || mode === 'tag');
-      document.getElementById('submodeBar').style.display = isUtility ? 'none' : 'flex';
-      document.getElementById('partyCard').style.display = isUtility ? 'none' : 'block';
+      document.getElementById('rightActionPanel').style.display = isUtility ? 'none' : 'flex';
       document.getElementById('cartCard').style.display = isUtility ? 'none' : 'block';
       document.getElementById('stockTakeBox').style.display = mode === 'stock' ? 'block' : 'none';
       document.getElementById('shelfTagBox').style.display = mode === 'tag' ? 'block' : 'none';
       document.getElementById('suppBillGroup').style.display = mode === 'purchase' ? 'block' : 'none';
       document.getElementById('checkoutSection').style.display = mode === 'sale' ? 'grid' : 'none';
       document.getElementById('purchaseActionSection').style.display = mode === 'purchase' ? 'block' : 'none';
-      document.getElementById('partyHeaderTitle').innerText = mode === 'purchase' ? '🚚 Supplier (സപ്ലയർ)' : '👤 Customer (കസ്റ്റമർ)';
+      document.getElementById('partyHeaderTitle').innerText = mode === 'purchase' ? '🚚 Supplier / المورد' : '👤 Customer / العميل';
       setPaymentMethod(mode === 'purchase' ? 'CREDIT' : 'CASH');
       setSubmode('normal');
     }
@@ -824,7 +841,7 @@
       document.getElementById('submodeNormal').className = 'submode-btn' + (sub === 'normal' ? ' active' : '');
       document.getElementById('submodeReturn').className = 'submode-btn' + (sub === 'return' ? ' return-active' : '');
       if (mainMode === 'purchase') {
-        document.getElementById('btnSavePurchase').innerText = sub === 'return' ? '🔄 Save Purchase Return' : '📦 Save Purchase';
+        document.getElementById('btnSavePurchase').innerText = sub === 'return' ? '🔄 Save Purchase Return / مرتجع مشتريات' : '📦 Save Purchase / حفظ المشتريات';
         document.getElementById('btnSavePurchase').style.background = sub === 'return' ? '#dc2626' : '#059669';
       }
     }
@@ -870,6 +887,7 @@
       if (!q) { dd.style.display = 'none'; return; }
       var matches = productsList.filter(function(p) {
         return (p.name_en || '').toUpperCase().indexOf(q) !== -1 ||
+               (p.name_ar && p.name_ar.indexOf(q) !== -1) ||
                (p.barcode1 && p.barcode1.toUpperCase().indexOf(q) !== -1) ||
                (p.barcode2 && p.barcode2.toUpperCase().indexOf(q) !== -1) ||
                (p.item_code && p.item_code.toUpperCase().indexOf(q) !== -1);
@@ -881,7 +899,7 @@
         div.className = 'suggestion-row';
         var costInc = ((parseFloat(p.cost_price) || 0) * 1.15).toFixed(2);
         var price = parseFloat(mainMode === 'purchase' ? p.cost_price : p.selling_price) || 0;
-        div.innerHTML = '<div><b>' + p.name_en + '</b><br><small style="color:#94a3b8;">' + (p.barcode1 || p.item_code || '') + ' | <span style="color:#a78bfa;">Cost(Inc): ' + costInc + '</span> | Stk: ' + (p.stock_quantity || 0) + '</small></div><div><b style="color:#38bdf8;">' + price.toFixed(2) + '</b></div>';
+        div.innerHTML = '<div><b>' + p.name_en + '</b>' + (p.name_ar ? ' <small style="color:#cbd5e1;">(' + p.name_ar + ')</small>' : '') + '<br><small style="color:#94a3b8;">' + (p.barcode1 || p.item_code || '') + ' | <span style="color:#a78bfa;">Cost(Inc): ' + costInc + '</span> | Stk: ' + (p.stock_quantity || 0) + '</small></div><div><b style="color:#38bdf8;">' + price.toFixed(2) + '</b></div>';
         div.onclick = function() {
           addItemToCartOrStock(p);
           document.getElementById('itemSearchInput').value = '';
@@ -890,11 +908,10 @@
         dd.appendChild(div);
       });
 
-      // Always show "+ Add New Item" option at bottom of search dropdown
       var addRow = document.createElement('div');
       addRow.className = 'suggestion-row';
       addRow.style.background = '#1e293b';
-      addRow.innerHTML = '<div style="color:#f59e0b; font-weight:bold;">➕ Add "' + q + '" as New Product</div><div style="color:#38bdf8;">Create →</div>';
+      addRow.innerHTML = '<div style="color:#f59e0b; font-weight:bold;">➕ Add "' + q + '" as New Product / إضافة صنف جديد</div><div style="color:#38bdf8;">Create →</div>';
       addRow.onclick = function() {
         dd.style.display = 'none';
         document.getElementById('itemSearchInput').value = '';
@@ -926,8 +943,7 @@
         addItemToCartOrStock(found);
         showToastMsg('✅ ' + found.name_en);
       } else {
-        // Automatically open Quick Add New Product modal with scanned barcode!
-        showToastMsg('🆕 New Barcode: ' + code + ' — Add Product');
+        showToastMsg('🆕 New Barcode: ' + code);
         openAddProductModal(code);
       }
     }
@@ -938,7 +954,7 @@
         var priceVal = (parseFloat(p.selling_price) || 0).toFixed(2) + ' SAR';
         var bCode = p.barcode1 || p.item_code || String(p.id);
         var sCode = p.item_code || p.barcode1 || String(p.id);
-        document.getElementById('tagPrevName').innerText = p.name_en;
+        document.getElementById('tagPrevName').innerText = p.name_en + (p.name_ar ? ' - ' + p.name_ar : '');
         document.getElementById('tagPrevPrice').innerText = priceVal;
         document.getElementById('tagPrevBarcode').innerText = '|||| ' + bCode + ' ||||';
         document.getElementById('tagPrevCode').innerText = 'Code: ' + sCode;
@@ -946,7 +962,7 @@
       }
       if (mainMode === 'stock') {
         stockTargetItem = p;
-        document.getElementById('stkItemName').innerText = p.name_en;
+        document.getElementById('stkItemName').innerText = p.name_en + (p.name_ar ? ' (' + p.name_ar + ')' : '');
         document.getElementById('stkCurrentStock').innerText = p.stock_quantity || 0;
         document.getElementById('inputPhysicalCount').value = p.stock_quantity || 0;
         document.getElementById('inputPhysicalCount').focus();
@@ -969,7 +985,7 @@
 
     function printSelectedShelfTag(printMode) {
       if (!tagTargetItem) {
-        alert('ആദ്യം മുകളിലെ ബോക്സിൽ സാധനത്തിന്റെ പേര്/കോഡ് സെർച്ച് ചെയ്യുകയോ സ്കാൻ ചെയ്യുകയോ ചെയ്യുക!');
+        alert('Please search or scan an item first / الرجاء اختيار صنف أولاً');
         return;
       }
       var copies = parseInt(document.getElementById('tagPrintQty').value, 10) || 1;
@@ -991,7 +1007,7 @@
       tbody.innerHTML = '';
       var subtotal = 0;
       if (!cart.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:15px;">Search item or tap 📷 Scan</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:#64748b; padding:24px;">Search item or tap 📷 Scan / ابحث أو امسح الباركود</td></tr>';
         document.getElementById('lblSubtotal').innerText = '0.00 SAR';
         document.getElementById('lblVat').innerText = '0.00 SAR';
         document.getElementById('lblNetTotal').innerText = '0.00 SAR';
@@ -1003,7 +1019,7 @@
         subtotal += lineTot;
         var tr = document.createElement('tr');
         tr.innerHTML =
-          '<td><b>' + it.name_en + '</b><br><small style="color:#a78bfa;">Cost(Inc): ' + it.cost_with_vat + '</small></td>' +
+          '<td><b>' + it.name_en + '</b>' + (it.name_ar ? '<br><small style="color:#cbd5e1;">' + it.name_ar + '</small>' : '') + '<br><small style="color:#a78bfa;">Cost(Inc): ' + it.cost_with_vat + '</small></td>' +
           '<td style="text-align:center;"><input type="number" step="any" class="cart-qty-input" value="' + it.quantity + '" onclick="this.select()" onchange="cart[' + idx + '].quantity=parseFloat(this.value)||1;renderCart()"></td>' +
           '<td style="text-align:right;"><input type="number" step="0.01" class="cart-price-input" value="' + it.selling_price.toFixed(2) + '" onclick="this.select()" onchange="cart[' + idx + '].selling_price=parseFloat(this.value)||0;renderCart()"></td>' +
           '<td style="text-align:right; font-weight:bold; color:#38bdf8;">' + lineTot.toFixed(2) + '</td>' +
@@ -1019,9 +1035,6 @@
 
     function clearCart() { cart = []; renderCart(); }
 
-    // =========================================================================
-    // PRINTING ENGINE (SUNMI 58mm, PC/Mobile 80mm Thermal, A4 Invoice, WhatsApp)
-    // =========================================================================
     function generateZatcaQrBase64(seller, vatNo, ts, total, vat) {
       function tlv(tag, val) {
         var str = unescape(encodeURIComponent(String(val)));
@@ -1079,7 +1092,6 @@
     }
 
     function printBrowserFormatted(inv, formatType) {
-      // formatType: 'thermal' (80mm) or 'a4'
       var store = storeSettings || {};
       var isA4 = (formatType === 'a4');
       var container = document.getElementById('printAreaContainer');
@@ -1102,8 +1114,8 @@
             '<div style="margin-top:4px; font-weight:bold;">' + (inv.is_return ? 'CREDIT NOTE / إشعار دائن' : 'SIMPLIFIED TAX INVOICE / فاتورة ضريبية مبسطة') + '</div>' +
           '</div>' +
           '<div style="display:flex; justify-content:space-between; margin-bottom:8px;">' +
-            '<div><b>Invoice No:</b> ' + inv.invoice_no + '<br><b>Customer:</b> ' + (inv.customer_name || 'WALK-IN') + '</div>' +
-            '<div style="text-align:right;"><b>Date:</b> ' + inv.invoice_date + '<br><b>Time:</b> ' + (inv.invoice_time || '') + '</div>' +
+            '<div><b>Invoice No:</b> ' + inv.invoice_no + '<br><b>Customer / العميل:</b> ' + (inv.customer_name || 'WALK-IN') + '</div>' +
+            '<div style="text-align:right;"><b>Date / التاريخ:</b> ' + inv.invoice_date + '<br><b>Time:</b> ' + (inv.invoice_time || '') + '</div>' +
           '</div>' +
           '<table style="width:100%; border-collapse:collapse; margin-bottom:10px;">' +
             '<thead><tr style="background:#f1f5f9; border-top:1px solid #000; border-bottom:1px solid #000;">' +
@@ -1115,10 +1127,10 @@
             '<tbody>' + rowsHtml + '</tbody>' +
           '</table>' +
           '<div style="border-top:2px solid #000; padding-top:6px; text-align:right;">' +
-            '<div>Subtotal (Excl. VAT): <b>' + Number(inv.subtotal).toFixed(2) + ' SAR</b></div>' +
-            '<div>VAT (15%): <b>' + Number(inv.vat_amount).toFixed(2) + ' SAR</b></div>' +
-            '<div style="font-size:' + (isA4 ? '18px' : '15px') + '; margin-top:4px;">NET TOTAL: <b>' + Number(inv.total_amount).toFixed(2) + ' SAR</b></div>' +
-            '<div>Payment Mode: <b>' + inv.payment_method + '</b></div>' +
+            '<div>Subtotal (Excl. VAT) / المجموع الفرعي: <b>' + Number(inv.subtotal).toFixed(2) + ' SAR</b></div>' +
+            '<div>VAT (15%) / الضريبة: <b>' + Number(inv.vat_amount).toFixed(2) + ' SAR</b></div>' +
+            '<div style="font-size:' + (isA4 ? '18px' : '15px') + '; margin-top:4px;">NET TOTAL / الإجمالي: <b>' + Number(inv.total_amount).toFixed(2) + ' SAR</b></div>' +
+            '<div>Payment Mode / الدفع: <b>' + inv.payment_method + '</b></div>' +
           '</div>' +
           '<div id="browserPrintQr" style="text-align:center; margin-top:12px;"></div>' +
           '<div style="text-align:center; margin-top:10px; font-size:11px;">Thank You For Shopping / شكراً لزيارتكم</div>' +
@@ -1138,7 +1150,7 @@
     function executeCheckout(action) {
       if (isSaving || !cart.length) return;
       if (selectedPayMethod === 'CREDIT' && !activeParty) {
-        alert('ക്രെഡിറ്റ് (Credit) നൽകാൻ ഒരു കസ്റ്റമറെ തിരഞ്ഞെടുക്കുക.');
+        alert('Please select a customer for Credit / الرجاء اختيار العميل للبيع الآجل');
         return;
       }
       isSaving = true;
@@ -1218,7 +1230,7 @@
           } else if (action === 'whatsapp') {
             shareInvoiceAsImage(invRecord, phone);
           } else {
-            showToastMsg('✅ Saved to Cloud: ' + invoiceNo);
+            showToastMsg('✅ Saved: ' + invoiceNo);
           }
         });
       }).catch(function(err) {
@@ -1231,7 +1243,7 @@
     function executePurchaseSave() {
       if (isSaving || !cart.length) return;
       var suppBill = document.getElementById('inputSuppBillNo').value.trim();
-      if (!suppBill) { alert('Enter Supplier Invoice No!'); return; }
+      if (!suppBill) { alert('Enter Supplier Invoice No / أدخل رقم فاتورة المورد'); return; }
       isSaving = true;
 
       var uniqueId = Date.now();
@@ -1276,7 +1288,7 @@
         });
         return Promise.all(tasks);
       }).then(function() {
-        showToastMsg('✅ Purchase Saved!');
+        showToastMsg('✅ Purchase Saved / تم الحفظ');
         clearCart();
         document.getElementById('inputSuppBillNo').value = '';
         loadInitialData(false);
@@ -1292,13 +1304,13 @@
       document.getElementById('vPartyName').value = activeParty.name_en;
       document.getElementById('vCurrentBal').value = (parseFloat(activeParty.current_balance) || 0).toFixed(2) + ' SAR';
       document.getElementById('vAmount').value = '';
-      document.getElementById('lblVoucherTitle').innerText = (mainMode === 'purchase') ? '🚚 Vendor Payment' : '💵 Customer Receipt';
+      document.getElementById('lblVoucherTitle').innerText = (mainMode === 'purchase') ? '🚚 Vendor Payment / سند صرف' : '💵 Customer Receipt / سند قبض';
       document.getElementById('paymentVoucherModal').style.display = 'flex';
     }
 
     function submitPartyPayment() {
       var amt = parseFloat(document.getElementById('vAmount').value);
-      if (isNaN(amt) || amt <= 0) { alert('സാധുവായ തുക നൽകുക.'); return; }
+      if (isNaN(amt) || amt <= 0) { alert('Enter valid amount / أدخل مبلغ صحيح'); return; }
       var mode = document.getElementById('vPayMode').value;
       var voucherType = (mainMode === 'purchase') ? 'PAYMENT' : 'RECEIPT';
       var oldBal = parseFloat(activeParty.current_balance) || 0;
@@ -1316,7 +1328,7 @@
           }
         })
       ]).then(function() {
-        showToastMsg('✅ Voucher Saved! Bal: ' + newBal.toFixed(2));
+        showToastMsg('✅ Saved! Bal: ' + newBal.toFixed(2));
         document.getElementById('paymentVoucherModal').style.display = 'none';
         loadInitialData(false);
       }).catch(function(e) { alert('Error: ' + e.message); });
