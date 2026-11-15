@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0f172a">
+  <title>SAMPOS Admin License Keygen</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      background-color: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #38bdf8;
+      border-radius: 14px;
+      padding: 22px 18px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 18px;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 12px;
+    }
+    .header h2 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #38bdf8;
+    }
+    .header p {
+      font-size: 12px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+    }
+    .form-input {
+      width: 100%;
+      background: #0f172a;
+      border: 1.5px solid #475569;
+      color: #ffffff;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: bold;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #38bdf8;
+    }
+    .btn {
+      width: 100%;
+      border: none;
+      padding: 13px;
+      border-radius: 8px;
+      font-size: 14.5px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+    .btn-primary {
+      background: #2563eb;
+      color: #ffffff;
+    }
+    .btn-generate {
+      background: #059669;
+      color: #ffffff;
+    }
+    .btn-copy {
+      background: #f97316;
+      color: #ffffff;
+      margin-top: 10px;
+    }
+    .btn-wa {
+      background: #25d366;
+      color: #000000;
+      margin-top: 8px;
+    }
+    .result-box {
+      display: none;
+      margin-top: 16px;
+      background: #0f172a;
+      border: 1.5px dashed #4ade80;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+    }
+    .result-label {
+      font-size: 11.5px;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .license-code {
+      font-family: monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #4ade80;
+      letter-spacing: 1.5px;
+      word-break: break-all;
+      padding: 6px 0;
+    }
+    .err-msg {
+      color: #f87171;
+      font-size: 12.5px;
+      font-weight: bold;
+      margin-top: 8px;
+      text-align: center;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <div class="header">
+      <h2>🔐 ADMIN LICENSE KEY GENERATOR</h2>
+      <p>SAMPOS Retail POS Activation Tool</p>
+    </div>
+
+    <!-- Step 1: Admin Password Lock -->
+    <div id="loginSection">
+      <div class="form-group">
+        <label>Enter Admin Password:</label>
+        <input type="password" id="adminPassInput" class="form-input" placeholder="••••••••" onkeydown="if(event.key==='Enter') verifyAdmin()">
+      </div>
+      <button type="button" class="btn btn-primary" onclick="verifyAdmin()">🔓 Unlock Generator</button>
+      <div class="err-msg" id="passError">❌ Incorrect Password! Access Denied.</div>
+    </div>
+
+    <!-- Step 2: Machine ID -> License Key Generator -->
+    <div id="generatorSection" style="display:none;">
+      <div class="form-group">
+        <label>Enter Client Machine ID / Device ID:</label>
+        <input type="text" id="machineIdInput" class="form-input" placeholder="Paste Machine ID here..." autocomplete="off">
+      </div>
+      <button type="button" class="btn btn-generate" onclick="generateActivationKey()">⚡ Generate License Key</button>
+
+      <div class="result-box" id="resultBox">
+        <div class="result-label">GENERATED ACTIVATION KEY:</div>
+        <div class="license-code" id="generatedKeyDisplay">---- ---- ---- ----</div>
+        <button type="button" class="btn btn-copy" id="btnCopyKey" onclick="copyLicenseKey()">📋 Copy License Key</button>
+        <button type="button" class="btn btn-wa" onclick="shareKeyWhatsApp()">📲 Send via WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SECRET_SALT = 'RETAIL_POS_SECURE_KEY_2026';
+    const ADMIN_PASSWORD = 'ALADI2026';
+
+    function verifyAdmin() {
+      const inp = document.getElementById('adminPassInput').value.trim();
+      const err = document.getElementById('passError');
+      if (inp === ADMIN_PASSWORD) {
+        err.style.display = 'none';
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('generatorSection').style.display = 'block';
+        setTimeout(() => document.getElementById('machineIdInput').focus(), 100);
+      } else {
+        err.style.display = 'block';
+      }
+    }
+
+    async function generateActivationKey() {
+      const cleanId = document.getElementById('machineIdInput').value.trim();
+      if (!cleanId) {
+        alert('Please enter Client Machine ID!');
+        return;
+      }
+
+      const encoder = new TextEncoder();
+      const keyData = encoder.encode(SECRET_SALT);
+      const msgData = encoder.encode(cleanId);
+
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+      const hashArray = Array.from(new Uint8Array(signature));
+      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+      const licenseKey = `${hashHex.slice(0, 4)}-${hashHex.slice(4, 8)}-${hashHex.slice(8, 12)}-${hashHex.slice(12, 16)}`;
+
+      document.getElementById('generatedKeyDisplay').innerText = licenseKey;
+      document.getElementById('resultBox').style.display = 'block';
+      document.getElementById('btnCopyKey').innerText = '📋 Copy License Key';
+    }
+
+    function copyLicenseKey() {
+      const keyText = document.getElementById('generatedKeyDisplay').innerText;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(keyText).then(() => {
+          document.getElementById('btnCopyKey').innerText = '✅ Copied!';
+        });
+      } else {
+        const temp = document.createElement('textarea');
+        temp.value = keyText;
+        document.body.appendChild(temp);
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        document.getElementById('btnCopyKey').innerText = '✅ Copied!';
+      }
+    }
+
+    function shareKeyWhatsApp() {
+      const machineId = document.getElementById('machineIdInput').value.trim();
+      const keyText = document.getElementById('generatedKeyDisplay').innerText;
+      const msg = encodeURIComponent(`*SAMPOS Retail POS Activation*\n\nMachine ID: ${machineId}\nLicense Key: *${keyText}*`);
+      window.open(`https://wa.me/?text=${msg}`, '_blank');
+    }
+  </script>
+</body>
+</html>
