@@ -165,9 +165,23 @@
 
     .stock-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 10px; }
 
-    #hiddenReceiptCard { position: absolute; left: -9999px; top: 0; }
-    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
-    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
+    #hiddenReceiptCard {
+      position: fixed; left: -99999px; top: 0; width: 780px;
+      background: #ffffff; color: #0f172a; padding: 24px;
+      font-family: Tahoma, Arial, sans-serif; pointer-events: none; z-index: -1;
+    }
+    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+    .rcpt-header h2 { font-size: 17px; margin-bottom: 2px; }
+    .rcpt-header p { font-size: 11px; margin: 1px 0; }
+    .rcpt-meta { font-size: 11px; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
+    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
+    .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
+    .rcpt-table td { padding: 4px 2px; }
+    .rcpt-totals { border-top: 1px dashed #000; padding-top: 6px; font-size: 12px; margin-bottom: 10px; }
+    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
+    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
+    .rcpt-qr { text-align: center; margin-top: 10px; }
+    .rcpt-footer { text-align: center; font-size: 10px; margin-top: 6px; }
   </style>
 </head>
 <body>
@@ -538,6 +552,7 @@
       }
     }
 
+    // ZATCA Sequential Invoice Number Generator (e.g., M1-20261113-0001)
     async function generateSequentialInvoiceNo(terminalId, invDate) {
       const dateStr = invDate.replace(/-/g, '');
       const prefix = `${terminalId}-${dateStr}-`;
@@ -563,6 +578,7 @@
       }
     }
 
+    // ZATCA Base64 TLV QR Generator
     function generateZatcaQrBase64(sellerName, vatNumber, timestamp, totalWithVat, vatTotal) {
       function toTLV(tag, value) {
         const encoder = new TextEncoder();
@@ -1326,6 +1342,7 @@
       document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
     }
 
+    // SAVE INVOICE WITH ZATCA PHASE 2 SEQUENTIAL NUMBERING (M1-YYYYMMDD-0001)
     async function executeCheckout(action) {
       if (isSaving) return;
       if (cart.length === 0) { alert('Cart is empty!'); return; }
@@ -1427,13 +1444,14 @@
           await sbClient.from('ledger').insert({
             id: uniqueId + 50,
             party_id: activeParty.id,
-            entry_date: invDate,
-            entry_type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
+            transaction_date: invDate,
+            type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
             reference_no: invoiceNo,
             debit: isReturn ? 0 : Number(netTotal.toFixed(2)),
             credit: isReturn ? Number(netTotal.toFixed(2)) : 0,
             balance_after: newBal,
-            description: `Mobile POS (${invoiceNo})`,
+            notes: `Mobile POS (${invoiceNo})`,
+            source_device: 'MOBILE',
             is_synced: 0
           });
         }
@@ -1542,12 +1560,6 @@
           }
         }
 
-        if (activeParty && isCredit) {
-          const vDelta = isReturnPur ? -netTotal : netTotal;
-          const newVBal = Number(((parseFloat(activeParty.current_balance) || 0) + vDelta).toFixed(2));
-          await sbClient.from('parties').update({ current_balance: newVBal, is_synced: 0 }).eq('id', activeParty.id);
-        }
-
         alert(`🎉 Purchase Saved to Cloud! Bill: ${suppBill}`);
         clearCart();
         document.getElementById('inputSuppBillNo').value = '';
@@ -1587,14 +1599,14 @@
         await sbClient.from('ledger').insert({
           id: Date.now(),
           party_id: activeParty.id,
-          entry_date: new Date().toISOString().slice(0, 10),
-          entry_type: voucherType,
+          transaction_date: new Date().toISOString().slice(0, 10),
+          type: voucherType,
           reference_no: `VCH-M-${String(Date.now()).slice(-5)}`,
           debit: voucherType === 'PAYMENT' ? amt : 0,
           credit: voucherType === 'RECEIPT' ? amt : 0,
           balance_after: newBal,
-          payment_mode: mode,
-          description: `Mobile ${voucherType} (${mode})`,
+          notes: `Mobile ${voucherType} (${mode})`,
+          source_device: 'MOBILE',
           is_synced: 0
         });
 
@@ -1683,10 +1695,23 @@
 
     async function reprintBill(id) {
       const cfg = getCloudConfig();
+      try {
+        await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoiceId: id, template: '80mm' })
+        });
+        alert('✅ Reprint command sent to Thermal Printer!');
+      } catch (e) {
+        alert('PC Local Printer Offline: ' + e.message);
+      }
+    }
+
+    async function shareRecentBillImage(id) {
       const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
       const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
       if (inv) {
-        await printMobileThermalInvoice(id, { ...inv, items: items || [] }, cfg);
+        await shareInvoiceAsImage(id, { ...inv, items: items || [] });
       }
     }
 
@@ -1731,6 +1756,17 @@
         </tr>`;
       }).join('');
 
+      const qrTempHolder = document.createElement('div');
+      let qrImgSrc = '';
+      try {
+        if (window.QRCode) {
+          new QRCode(qrTempHolder, { text: qrData || 'https://zatca.gov.sa', width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+          const cnv = qrTempHolder.querySelector('canvas');
+          const img = qrTempHolder.querySelector('img');
+          qrImgSrc = img ? img.src : (cnv ? cnv.toDataURL('image/png') : '');
+        }
+      } catch (e) {}
+
       const printWin = window.open('', '_blank', 'width=380,height=600');
       if (printWin) {
         printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
@@ -1741,8 +1777,8 @@
           table { width:100%; border-collapse:collapse; font-size:11px; }
           .row { display:flex; justify-content:space-between; margin:2px 0; }
           #mQr { display:flex; justify-content:center; margin:8px 0; }
-          #mQr canvas, #mQr img { width:140px !important; height:140px !important; }
-        </style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head><body>
+          #mQr img { width:140px; height:140px; }
+        </style></head><body>
           <div class="center bold" style="font-size:14px; direction:rtl;">${storeAr}</div>
           <div class="center bold" style="font-size:12px;">${storeEn}</div>
           <div class="center" style="font-size:10px;">VAT: ${store.vat_number || '300000000000003'}</div>
@@ -1758,16 +1794,19 @@
           <div class="row bold" style="font-size:13px;"><span>NET TOTAL:</span><b>${totalAmt} SAR</b></div>
           <div class="row"><span>Cash Paid:</span><b>${cashPaid}</b></div>
           <div class="row"><span>Change Return / باقي:</span><b>${changeRet}</b></div>
-          <div id="mQr"></div>
+          <div id="mQr">${qrImgSrc ? `<img src="${qrImgSrc}" alt="QR">` : ''}</div>
           <div class="center bold" style="direction:rtl; margin-top:6px;">شكراً لزيارتكم</div>
-          <script>
-            window.onload = function() {
-              new QRCode(document.getElementById('mQr'), { text: ${JSON.stringify(qrData || 'https://zatca.gov.sa')}, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
-              setTimeout(function() { window.print(); }, 450);
-            };
-          </script>
         </body></html>`);
         printWin.document.close();
+        setTimeout(() => { try { printWin.focus(); printWin.print(); } catch (e) {} }, 450);
+      } else {
+        try {
+          await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ invoiceId, template: '80mm' })
+          });
+        } catch (e) {}
       }
       alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
     }
@@ -1847,7 +1886,9 @@
               await navigator.share({
                 files: [pdfFile],
                 title: `Tax Invoice ${inv.invoice_no}`,
-                text: `Tax Invoice from ${storeEn}\nInvoice No: ${inv.invoice_no}\nTotal: ${totalAmt.toFixed(2)} SAR`
+                text: `Tax Invoice from ${storeEn}
+Invoice No: ${inv.invoice_no}
+Total: ${totalAmt.toFixed(2)} SAR`
               });
               return;
             } catch (shareErr) {}
@@ -1863,7 +1904,8 @@
 
           if (openWhatsApp) {
             const ph = customPhone ? customPhone.replace(/[^0-9]/g, '') : '';
-            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}\nTotal: ${totalAmt.toFixed(2)} SAR`);
+            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}
+Total: ${totalAmt.toFixed(2)} SAR`);
             const waUrl = ph ? `https://wa.me/${ph}?text=${msg}` : `https://wa.me/?text=${msg}`;
             window.open(waUrl, '_blank');
           }
