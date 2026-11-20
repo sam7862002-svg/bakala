@@ -9,6 +9,7 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; padding: 10px; padding-bottom: 90px; }
@@ -164,23 +165,9 @@
 
     .stock-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 10px; }
 
-    #hiddenReceiptCard {
-      position: absolute; left: -9999px; top: 0; width: 380px;
-      background: #ffffff; color: #000000; padding: 16px; font-family: monospace, sans-serif;
-      border: 1px solid #ddd;
-    }
-    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-    .rcpt-header h2 { font-size: 17px; margin-bottom: 2px; }
-    .rcpt-header p { font-size: 11px; margin: 1px 0; }
-    .rcpt-meta { font-size: 11px; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
-    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
-    .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
-    .rcpt-table td { padding: 4px 2px; }
-    .rcpt-totals { border-top: 1px dashed #000; padding-top: 6px; font-size: 12px; margin-bottom: 10px; }
-    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
-    .rcpt-qr { text-align: center; margin-top: 10px; }
-    .rcpt-footer { text-align: center; font-size: 10px; margin-top: 6px; }
+    #hiddenReceiptCard { position: absolute; left: -9999px; top: 0; }
+    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 3px; }
+    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 5px; margin-top: 5px; }
   </style>
 </head>
 <body>
@@ -330,7 +317,7 @@
         <button class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🖨️ Save & Print (80mm)</button>
         <button class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 Save & A4</button>
         <button class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save to Cloud/PC</button>
-        <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp Image</button>
+        <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp PDF</button>
       </div>
 
       <div id="purchaseActionSection" style="display:none; margin-top:12px;">
@@ -464,43 +451,65 @@
     </div>
   </div>
 
-  <!-- HIDDEN OFF-SCREEN INVOICE RENDERING CONTAINER -->
-  <div id="hiddenReceiptCard">
-    <div class="rcpt-header">
-      <h2 id="rStoreName">STORE NAME</h2>
-      <p id="rStoreNameAr">اسم المتجر</p>
-      <p>VAT No / الرقم الضريبي: <span id="rStoreVat">300000000000003</span></p>
-      <p id="rStoreAddr">Saudi Arabia</p>
-      <p style="font-weight:bold; margin-top:4px;">SIMPLIFIED TAX INVOICE / فاتورة ضريبية مبسطة</p>
-    </div>
-    <div class="rcpt-meta">
-      <div style="display:flex; justify-content:space-between;">
-        <span>Invoice No: <b id="rInvNo">INV-001</b></span>
-        <span id="rInvDate">2026-11-13</span>
+  <!-- HIDDEN OFF-SCREEN A4 PDF INVOICE RENDERING CONTAINER -->
+  <div id="hiddenReceiptCard" style="width:780px; padding:24px; background:#ffffff; color:#0f172a; font-family:Tahoma,Arial,sans-serif;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
+      <div>
+        <div id="rStoreNameAr" style="font-size:20px; font-weight:900; color:#0284c7; direction:rtl; text-align:left;">اسم المتجر</div>
+        <h2 id="rStoreName" style="font-size:16px; font-weight:800; color:#0f172a; margin-top:2px;">STORE NAME</h2>
+        <p style="font-size:11.5px; color:#334155; margin-top:4px;">VAT No / الرقم الضريبي: <b id="rStoreVat">300000000000003</b></p>
+        <p id="rStoreAddr" style="font-size:11px; color:#475569; margin-top:2px;">Saudi Arabia</p>
       </div>
-      <div style="margin-top:2px;">Customer: <span id="rCustName">WALK-IN CUSTOMER</span></div>
+      <div style="text-align:right;">
+        <div style="font-size:18px; font-weight:900; color:#0f172a;">TAX INVOICE</div>
+        <div style="font-size:13px; font-weight:800; color:#0284c7; direction:rtl;">فاتورة ضريبية</div>
+        <div style="font-size:11.5px; color:#1e293b; margin-top:6px;">
+          <div>Invoice No: <b id="rInvNo">INV-001</b></div>
+          <div>Date: <b id="rInvDate">2026-11-20</b></div>
+        </div>
+      </div>
     </div>
-    <table class="rcpt-table">
+
+    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:12px; display:flex; justify-content:space-between;">
+      <div>Customer / العميل: <b id="rCustName">WALK-IN CUSTOMER</b></div>
+      <div>Payment / الدفع: <b id="rPayMethod">CASH</b></div>
+    </div>
+
+    <table class="rcpt-table" style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:14px;">
       <thead>
-        <tr>
-          <th>Description</th>
-          <th style="text-align:center;">Qty</th>
-          <th style="text-align:right;">Price</th>
-          <th style="text-align:right;">Total</th>
+        <tr style="background:#f1f5f9;">
+          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:left;">Description / الوصف</th>
+          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">Unit / الوحدة</th>
+          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">Qty / الكمية</th>
+          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">Price / السعر</th>
+          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">Total / الإجمالي</th>
         </tr>
       </thead>
       <tbody id="rItemsBody"></tbody>
     </table>
-    <div class="rcpt-totals">
-      <div class="rcpt-tot-row"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00 SAR</span></div>
-      <div class="rcpt-tot-row"><span>VAT (15%):</span><span id="rVat">0.00 SAR</span></div>
-      <div class="rcpt-tot-row grand"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
-      <div class="rcpt-tot-row" style="margin-top:4px;"><span>Payment:</span><span id="rPayMethod">CASH</span></div>
+
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-top:12px;">
+      <div style="display:flex; align-items:center; gap:12px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; background:#f8fafc;">
+        <div id="rQrCanvas" style="display:inline-block;"></div>
+        <div style="font-size:11px; color:#334155; line-height:1.5;">
+          <b>ZATCA Phase-2 Electronic Invoice</b><br>
+          <span style="direction:rtl; display:block; color:#0284c7; font-weight:bold;">فاتورة إلكترونية معتمدة</span>
+          <div style="margin-top:8px; border:2px solid #0284c7; border-radius:8px; padding:6px 10px; text-align:center; color:#0369a1; font-weight:800;">
+            <span id="rSealText">OFFICIAL SEAL / الختم الرسمي</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="rcpt-totals" style="width:270px; border:1px solid #cbd5e1; border-radius:6px; padding:10px; background:#fff;">
+        <div class="rcpt-tot-row"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00 SAR</span></div>
+        <div class="rcpt-tot-row"><span>VAT (15%):</span><span id="rVat">0.00 SAR</span></div>
+        <div class="rcpt-tot-row grand"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
+        <div class="rcpt-tot-row" style="margin-top:4px;"><span>Cash Paid / المدفوع:</span><span id="rCashPaid">0.00 SAR</span></div>
+        <div class="rcpt-tot-row"><span>Change Return / باقي:</span><span id="rChangeReturn">0.00 SAR</span></div>
+      </div>
     </div>
-    <div class="rcpt-qr">
-      <div id="rQrCanvas" style="display:inline-block;"></div>
-    </div>
-    <div class="rcpt-footer">
+
+    <div class="rcpt-footer" style="margin-top:14px; border-top:1px solid #e2e8f0; padding-top:8px; font-size:11px; color:#475569; text-align:center;">
       <p>Thank You For Shopping With Us / شكراً لزيارتكم</p>
     </div>
   </div>
@@ -529,7 +538,6 @@
       }
     }
 
-    // ZATCA Sequential Invoice Number Generator (e.g., M1-20261113-0001)
     async function generateSequentialInvoiceNo(terminalId, invDate) {
       const dateStr = invDate.replace(/-/g, '');
       const prefix = `${terminalId}-${dateStr}-`;
@@ -555,7 +563,6 @@
       }
     }
 
-    // ZATCA Base64 TLV QR Generator
     function generateZatcaQrBase64(sellerName, vatNumber, timestamp, totalWithVat, vatTotal) {
       function toTLV(tag, value) {
         const encoder = new TextEncoder();
@@ -1319,7 +1326,6 @@
       document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
     }
 
-    // SAVE INVOICE WITH ZATCA PHASE 2 SEQUENTIAL NUMBERING (M1-YYYYMMDD-0001)
     async function executeCheckout(action) {
       if (isSaving) return;
       if (cart.length === 0) { alert('Cart is empty!'); return; }
@@ -1421,32 +1427,31 @@
           await sbClient.from('ledger').insert({
             id: uniqueId + 50,
             party_id: activeParty.id,
-            transaction_date: invDate,
-            type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
+            entry_date: invDate,
+            entry_type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
             reference_no: invoiceNo,
             debit: isReturn ? 0 : Number(netTotal.toFixed(2)),
             credit: isReturn ? Number(netTotal.toFixed(2)) : 0,
             balance_after: newBal,
-            notes: `Mobile POS (${invoiceNo})`,
-            source_device: 'MOBILE',
+            description: `Mobile POS (${invoiceNo})`,
             is_synced: 0
           });
         }
 
-        if (action === 'thermal' || action === 'a4') {
+        if (action === 'thermal') {
+          await printMobileThermalInvoice(uniqueId, { ...invRecord, items: itemsRecords }, cfg);
+        } else if (action === 'a4') {
           try {
             await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ invoiceId: uniqueId, template: action === 'a4' ? 'a4' : '80mm' })
+              body: JSON.stringify({ invoiceId: uniqueId, template: 'a4' })
             });
-            alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്ററിലേക്ക് അയച്ചു! [${invoiceNo}]`);
-          } catch (e) {
-            alert(`✅ ബിൽ ക്ലൗഡിൽ സേവ് ആയി! [${invoiceNo}]`);
-          }
+          } catch (e) {}
+          await shareInvoiceAsPdf(uniqueId, { ...invRecord, items: itemsRecords }, activeParty && activeParty.phone ? activeParty.phone : '', false);
         } else if (action === 'whatsapp') {
           const phone = activeParty && activeParty.phone ? activeParty.phone : '';
-          await shareInvoiceAsImage(uniqueId, { ...invRecord, items: itemsRecords }, phone);
+          await shareInvoiceAsPdf(uniqueId, { ...invRecord, items: itemsRecords }, phone, true);
         } else {
           alert(`✅ ബിൽ വിജയകരമായി സേവ് ചെയ്തു! [${invoiceNo}]`);
         }
@@ -1537,6 +1542,12 @@
           }
         }
 
+        if (activeParty && isCredit) {
+          const vDelta = isReturnPur ? -netTotal : netTotal;
+          const newVBal = Number(((parseFloat(activeParty.current_balance) || 0) + vDelta).toFixed(2));
+          await sbClient.from('parties').update({ current_balance: newVBal, is_synced: 0 }).eq('id', activeParty.id);
+        }
+
         alert(`🎉 Purchase Saved to Cloud! Bill: ${suppBill}`);
         clearCart();
         document.getElementById('inputSuppBillNo').value = '';
@@ -1576,14 +1587,14 @@
         await sbClient.from('ledger').insert({
           id: Date.now(),
           party_id: activeParty.id,
-          transaction_date: new Date().toISOString().slice(0, 10),
-          type: voucherType,
+          entry_date: new Date().toISOString().slice(0, 10),
+          entry_type: voucherType,
           reference_no: `VCH-M-${String(Date.now()).slice(-5)}`,
           debit: voucherType === 'PAYMENT' ? amt : 0,
           credit: voucherType === 'RECEIPT' ? amt : 0,
           balance_after: newBal,
-          notes: `Mobile ${voucherType} (${mode})`,
-          source_device: 'MOBILE',
+          payment_mode: mode,
+          description: `Mobile ${voucherType} (${mode})`,
           is_synced: 0
         });
 
@@ -1653,7 +1664,7 @@
               </div>
               <div class="bill-actions">
                 <button class="btn-reprint" onclick="reprintBill(${inv.id})">🖨️ Print</button>
-                <button class="btn-wa-reprint" onclick="shareRecentBillImage(${inv.id})">📲 WA Image</button>
+                <button class="btn-wa-reprint" onclick="shareRecentBillImage(${inv.id})">📲 WA PDF</button>
               </div>
             `;
             listEl.appendChild(div);
@@ -1672,33 +1683,108 @@
 
     async function reprintBill(id) {
       const cfg = getCloudConfig();
-      try {
-        await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceId: id, template: '80mm' })
-        });
-        alert('✅ Reprint command sent to Thermal Printer!');
-      } catch (e) {
-        alert('PC Local Printer Offline: ' + e.message);
-      }
-    }
-
-    async function shareRecentBillImage(id) {
       const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
       const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
       if (inv) {
-        await shareInvoiceAsImage(id, { ...inv, items: items || [] });
+        await printMobileThermalInvoice(id, { ...inv, items: items || [] }, cfg);
       }
     }
 
-    async function shareInvoiceAsImage(invoiceId, inv, customPhone = '') {
+    async function fetchDatabaseZatcaQr(invoiceId, fallbackQr, cfg) {
+      let qrVal = fallbackQr || '';
       try {
+        if (sbClient && invoiceId) {
+          const { data } = await sbClient.from('invoices').select('zatca_qr').eq('id', invoiceId).maybeSingle();
+          if (data && data.zatca_qr) qrVal = data.zatca_qr;
+        }
+      } catch (e) {}
+
+      if (!qrVal || qrVal.length < 20) {
+        try {
+          const res = await fetch(`http://${cfg.ip}:${cfg.port}/api/invoices/${invoiceId}`);
+          if (res.ok) {
+            const j = await res.json();
+            if (j && j.data && j.data.zatca_qr) qrVal = j.data.zatca_qr;
+          }
+        } catch (e) {}
+      }
+      return qrVal;
+    }
+
+    async function printMobileThermalInvoice(invoiceId, inv, cfg) {
+      const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
+      const store = storeSettings || {};
+      const storeAr = store.company_name_ar || 'اسم المتجر';
+      const storeEn = store.company_name_en || 'RETAIL STORE';
+      const totalAmt = Number(inv.total_amount || 0).toFixed(2);
+      const subAmt = Number(inv.subtotal || 0).toFixed(2);
+      const vatAmt = Number(inv.vat_amount || 0).toFixed(2);
+      const cashPaid = Number(inv.paid_cash || inv.total_amount || 0).toFixed(2);
+      const changeRet = Number(inv.change_amount || 0).toFixed(2);
+
+      const itemsHtml = (inv.items || []).map(it => {
+        const label = (it.name_ar && it.name_ar.trim()) ? it.name_ar : (it.name_en || '');
+        return `<tr>
+          <td style="padding:2px 0; font-weight:800;">${label}</td>
+          <td style="text-align:center; font-weight:800;">${it.quantity}</td>
+          <td style="text-align:right; font-weight:800;">${Number(it.line_total || 0).toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+
+      const printWin = window.open('', '_blank', 'width=380,height=600');
+      if (printWin) {
+        printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+          body { width:72mm; margin:0 auto; padding:4px; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; }
+          .center { text-align:center; }
+          .bold { font-weight:900; }
+          .line { border-top:1px dashed #000; margin:6px 0; }
+          table { width:100%; border-collapse:collapse; font-size:11px; }
+          .row { display:flex; justify-content:space-between; margin:2px 0; }
+          #mQr { display:flex; justify-content:center; margin:8px 0; }
+          #mQr canvas, #mQr img { width:140px !important; height:140px !important; }
+        </style><script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head><body>
+          <div class="center bold" style="font-size:14px; direction:rtl;">${storeAr}</div>
+          <div class="center bold" style="font-size:12px;">${storeEn}</div>
+          <div class="center" style="font-size:10px;">VAT: ${store.vat_number || '300000000000003'}</div>
+          <div class="line"></div>
+          <div class="row"><span>رقم الفاتورة:</span><b>${inv.invoice_no}</b></div>
+          <div class="row"><span>التاريخ:</span><b>${inv.invoice_date} ${inv.invoice_time || ''}</b></div>
+          <div class="row"><span>العميل:</span><b>${inv.customer_name || 'WALK-IN CUSTOMER'}</b></div>
+          <div class="line"></div>
+          <table><thead><tr><th align="left">الوصف</th><th>كمية</th><th align="right">المجموع</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+          <div class="line"></div>
+          <div class="row"><span>Subtotal:</span><b>${subAmt}</b></div>
+          <div class="row"><span>VAT 15%:</span><b>${vatAmt}</b></div>
+          <div class="row bold" style="font-size:13px;"><span>NET TOTAL:</span><b>${totalAmt} SAR</b></div>
+          <div class="row"><span>Cash Paid:</span><b>${cashPaid}</b></div>
+          <div class="row"><span>Change Return / باقي:</span><b>${changeRet}</b></div>
+          <div id="mQr"></div>
+          <div class="center bold" style="direction:rtl; margin-top:6px;">شكراً لزيارتكم</div>
+          <script>
+            window.onload = function() {
+              new QRCode(document.getElementById('mQr'), { text: ${JSON.stringify(qrData || 'https://zatca.gov.sa')}, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+              setTimeout(function() { window.print(); }, 450);
+            };
+          </script>
+        </body></html>`);
+        printWin.document.close();
+      }
+      alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
+    }
+
+    async function shareInvoiceAsPdf(invoiceId, inv, customPhone = '', openWhatsApp = true) {
+      try {
+        const cfg = getCloudConfig();
+        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
         const store = storeSettings || {};
-        document.getElementById('rStoreName').innerText = store.company_name_en || 'RETAIL STORE';
-        document.getElementById('rStoreNameAr').innerText = store.company_name_ar || 'اسم المتجر';
+        const storeAr = store.company_name_ar || 'اسم المتجر';
+        const storeEn = store.company_name_en || 'RETAIL STORE';
+
+        document.getElementById('rStoreNameAr').innerText = storeAr;
+        document.getElementById('rStoreName').innerText = storeEn;
         document.getElementById('rStoreVat').innerText = store.vat_number || '300000000000003';
         document.getElementById('rStoreAddr').innerText = store.city_en ? `${store.city_en}, Saudi Arabia` : 'Saudi Arabia';
+        document.getElementById('rSealText').innerText = `${storeAr} | ${storeEn}`;
 
         document.getElementById('rInvNo').innerText = inv.invoice_no;
         document.getElementById('rInvDate').innerText = `${inv.invoice_date} ${inv.invoice_time || ''}`;
@@ -1709,64 +1795,89 @@
         (inv.items || []).forEach(it => {
           const row = document.createElement('tr');
           row.innerHTML = `
-            <td>${it.name_en}</td>
-            <td style="text-align:center;">${it.quantity}</td>
-            <td style="text-align:right;">${Number(it.selling_price).toFixed(2)}</td>
-            <td style="text-align:right;">${Number(it.line_total).toFixed(2)}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px 8px;">
+              <div style="font-weight:700;">${it.name_en || ''}</div>
+              ${it.name_ar ? `<div style="font-size:11px; color:#0284c7; direction:rtl; text-align:left;">${it.name_ar}</div>` : ''}
+            </td>
+            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">${it.unit || 'PCS'}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">${it.quantity}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${Number(it.selling_price || 0).toFixed(2)}</td>
+            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right; font-weight:700;">${Number(it.line_total || 0).toFixed(2)}</td>
           `;
           tbody.appendChild(row);
         });
 
-        document.getElementById('rSubtotal').innerText = Number(inv.subtotal).toFixed(2) + ' SAR';
-        document.getElementById('rVat').innerText = Number(inv.vat_amount).toFixed(2) + ' SAR';
-        document.getElementById('rNetTotal').innerText = Number(inv.total_amount).toFixed(2) + ' SAR';
-        document.getElementById('rPayMethod').innerText = inv.payment_method;
+        const totalAmt = Number(inv.total_amount || 0);
+        const cashPaid = Number(inv.paid_cash || totalAmt);
+        const changeRet = Number(inv.change_amount || 0);
+
+        document.getElementById('rSubtotal').innerText = Number(inv.subtotal || 0).toFixed(2) + ' SAR';
+        document.getElementById('rVat').innerText = Number(inv.vat_amount || 0).toFixed(2) + ' SAR';
+        document.getElementById('rNetTotal').innerText = totalAmt.toFixed(2) + ' SAR';
+        document.getElementById('rPayMethod').innerText = inv.payment_method || 'CASH';
+        document.getElementById('rCashPaid').innerText = cashPaid.toFixed(2) + ' SAR';
+        document.getElementById('rChangeReturn').innerText = changeRet.toFixed(2) + ' SAR';
 
         const qrContainer = document.getElementById('rQrCanvas');
         qrContainer.innerHTML = '';
-        if (inv.zatca_qr && window.QRCode) {
+        if (window.QRCode) {
           new QRCode(qrContainer, {
-            text: inv.zatca_qr,
-            width: 140,
-            height: 140,
+            text: qrData || 'https://zatca.gov.sa',
+            width: 145,
+            height: 145,
             correctLevel: QRCode.CorrectLevel.M
           });
         }
 
-        await new Promise(r => setTimeout(r, 150));
+        await new Promise(r => setTimeout(r, 200));
 
         const element = document.getElementById('hiddenReceiptCard');
-        const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+        if (window.html2pdf) {
+          const pdfBlob = await html2pdf().set({
+            margin: 8,
+            filename: `${inv.invoice_no}.pdf`,
+            image: { type: 'jpeg', quality: 0.96 },
+            html2canvas: { scale: 2, useCORS: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+          }).from(element).outputPdf('blob');
 
-        canvas.toBlob(async (blob) => {
-          if (!blob) throw new Error('Canvas conversion failed');
-          const file = new File([blob], `${inv.invoice_no}.png`, { type: 'image/png' });
-
-          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+          const pdfFile = new File([pdfBlob], `${inv.invoice_no}.pdf`, { type: 'application/pdf' });
+          if (openWhatsApp && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
             try {
               await navigator.share({
-                files: [file],
+                files: [pdfFile],
                 title: `Tax Invoice ${inv.invoice_no}`,
-                text: `Tax Invoice from ${store.company_name_en || 'STORE'}
-Invoice No: ${inv.invoice_no}
-Total: ${Number(inv.total_amount).toFixed(2)} SAR`
+                text: `Tax Invoice from ${storeEn}\nInvoice No: ${inv.invoice_no}\nTotal: ${totalAmt.toFixed(2)} SAR`
               });
+              return;
             } catch (shareErr) {}
-          } else {
-            const link = document.createElement('a');
-            link.download = `${inv.invoice_no}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
+          }
 
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+          const a = document.createElement('a');
+          a.href = pdfUrl;
+          a.download = `${inv.invoice_no}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          if (openWhatsApp) {
             const ph = customPhone ? customPhone.replace(/[^0-9]/g, '') : '';
-            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}
-Total: ${Number(inv.total_amount).toFixed(2)} SAR`);
+            const msg = encodeURIComponent(`Tax Invoice: ${inv.invoice_no}\nTotal: ${totalAmt.toFixed(2)} SAR`);
             const waUrl = ph ? `https://wa.me/${ph}?text=${msg}` : `https://wa.me/?text=${msg}`;
             window.open(waUrl, '_blank');
           }
-        }, 'image/png');
+        }
       } catch (err) {
-        showScanSuccessToast('Image generation error: ' + err.message, true);
+        showScanSuccessToast('PDF error: ' + err.message, true);
+      }
+    }
+
+    async function shareRecentBillImage(id) {
+      const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
+      const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
+      if (inv) {
+        await shareInvoiceAsPdf(id, { ...inv, items: items || [] }, inv.customer_phone || '', true);
       }
     }
 
