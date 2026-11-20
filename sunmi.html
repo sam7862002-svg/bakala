@@ -165,26 +165,52 @@
 
     .stock-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-top: 10px; }
 
+    /* A4 Stage matching invoice_a4.html exact design */
     #pdfRenderStage {
       display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(15, 23, 42, 0.92); z-index: 99999; overflow: auto; padding: 12px;
     }
     #hiddenReceiptCard {
-      width: 780px; margin: 0 auto; background: #ffffff; color: #0f172a; padding: 24px;
-      font-family: Tahoma, Arial, sans-serif;
+      background: #fff; color: #0f172a; padding: 20px 30px; width: 210mm; margin: 0 auto; font-size: 13px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, Arial, sans-serif;
     }
-    .rcpt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
-    .rcpt-header h2 { font-size: 17px; margin-bottom: 2px; }
-    .rcpt-header p { font-size: 11px; margin: 1px 0; }
-    .rcpt-meta { font-size: 11px; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 8px; }
-    .rcpt-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 8px; }
-    .rcpt-table th { border-bottom: 1px solid #000; padding: 4px 2px; text-align: left; }
-    .rcpt-table td { padding: 4px 2px; }
-    .rcpt-totals { border-top: 1px dashed #000; padding-top: 6px; font-size: 12px; margin-bottom: 10px; }
-    .rcpt-tot-row { display: flex; justify-content: space-between; margin-bottom: 2px; }
-    .rcpt-tot-row.grand { font-size: 15px; font-weight: bold; border-top: 1px solid #000; padding-top: 4px; margin-top: 4px; }
-    .rcpt-qr { text-align: center; margin-top: 10px; }
-    .rcpt-footer { text-align: center; font-size: 10px; margin-top: 6px; }
+    #hiddenReceiptCard .a4-header-table { width: 100%; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 14px; border-collapse: collapse; }
+    #hiddenReceiptCard .a4-store-name-ar { font-size: 21px; font-weight: 900; color: #0284c7; direction: rtl; text-align: left; line-height: 1.25; }
+    #hiddenReceiptCard .a4-store-name-en { font-size: 16px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-top: 2px; }
+    #hiddenReceiptCard .a4-inv-title { font-size: 22px; font-weight: 900; color: #0f172a; text-align: right; }
+    #hiddenReceiptCard .a4-inv-title-ar { font-size: 14px; font-weight: bold; color: #0284c7; text-align: right; }
+
+    #hiddenReceiptCard .a4-party-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    #hiddenReceiptCard .a4-p-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 12px; line-height: 1.5; }
+    #hiddenReceiptCard .a4-p-box-title { font-weight: bold; color: #0369a1; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+    #hiddenReceiptCard table.a4-items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    #hiddenReceiptCard table.a4-items-table th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 11px; font-weight: bold; color: #334155; text-align: center; vertical-align: middle; }
+    #hiddenReceiptCard table.a4-items-table th .ar-sub { display: block; font-size: 10.5px; color: #0284c7; direction: rtl; margin-top: 2px; }
+    #hiddenReceiptCard table.a4-items-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 12px; vertical-align: middle; }
+
+    #hiddenReceiptCard .a4-item-desc-cell { max-width: 240px; line-height: 1.25; }
+    #hiddenReceiptCard .a4-item-line-en { font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
+    #hiddenReceiptCard .a4-item-line-ar { color: #0369a1; font-weight: 700; direction: rtl; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; margin-top: 1px; }
+
+    #hiddenReceiptCard .a4-bottom-section { display: grid; grid-template-columns: 175px 1fr 245px; gap: 14px; align-items: start; }
+    #hiddenReceiptCard .a4-qr-box { width: 165px; height: 165px; border: 1px solid #cbd5e1; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    #hiddenReceiptCard .a4-qr-box canvas, #hiddenReceiptCard .a4-qr-box img { width: 152px !important; height: 152px !important; }
+
+    #hiddenReceiptCard .a4-bank-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; font-size: 12px; line-height: 1.6; }
+    #hiddenReceiptCard .a4-bank-title { font-weight: bold; color: #0369a1; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
+
+    #hiddenReceiptCard .a4-totals-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    #hiddenReceiptCard .a4-totals-table td { padding: 4px 6px; }
+    #hiddenReceiptCard .a4-totals-table .grand-row td { font-size: 15px; font-weight: 900; color: #0369a1; border-top: 2px solid #0284c7; border-bottom: 2px solid #0284c7; padding: 6px; }
+
+    #hiddenReceiptCard .a4-seal-wrap { text-align: center; margin-top: 14px; }
+    #hiddenReceiptCard .a4-seal-wrap img { max-height: 115px; max-width: 195px; object-fit: contain; }
+    #hiddenReceiptCard .a4-seal-fallback {
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 145px; height: 105px; border: 2.5px solid #0284c7; border-radius: 10px;
+      color: #0369a1; font-weight: 800; padding: 6px; transform: rotate(-4deg);
+    }
   </style>
 </head>
 <body>
@@ -468,69 +494,120 @@
     </div>
   </div>
 
-  <!-- ON-SCREEN MODAL STAGE FOR RELIABLE MOBILE PDF RENDERING -->
+  <!-- EXACT A4 TAX INVOICE STAGE (Matches invoice_a4.html for A4 Print & WhatsApp PDF) -->
   <div id="pdfRenderStage">
     <div style="text-align:center; color:#38bdf8; font-weight:bold; font-size:13px; margin-bottom:8px;">⏳ Generating A4 Tax Invoice PDF...</div>
-    <div id="hiddenReceiptCard" style="width:780px; padding:24px; background:#ffffff; color:#0f172a; font-family:Tahoma,Arial,sans-serif;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px solid #0284c7; padding-bottom:12px; margin-bottom:14px;">
-      <div>
-        <div id="rStoreNameAr" style="font-size:20px; font-weight:900; color:#0284c7; direction:rtl; text-align:left;">اسم المتجر</div>
-        <h2 id="rStoreName" style="font-size:16px; font-weight:800; color:#0f172a; margin-top:2px;">STORE NAME</h2>
-        <p style="font-size:11.5px; color:#334155; margin-top:4px;">VAT No / الرقم الضريبي: <b id="rStoreVat">300000000000003</b></p>
-        <p id="rStoreAddr" style="font-size:11px; color:#475569; margin-top:2px;">Saudi Arabia</p>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:18px; font-weight:900; color:#0f172a;">TAX INVOICE</div>
-        <div style="font-size:13px; font-weight:800; color:#0284c7; direction:rtl;">فاتورة ضريبية</div>
-        <div style="font-size:11.5px; color:#1e293b; margin-top:6px;">
-          <div>Invoice No: <b id="rInvNo">INV-001</b></div>
-          <div>Date: <b id="rInvDate">2026-11-20</b></div>
+    <div id="hiddenReceiptCard">
+      <table class="a4-header-table">
+        <tr>
+          <td style="width: 60%; vertical-align: top;">
+            <div class="a4-store-name-ar" id="rStoreNameAr">متجر التجزئة</div>
+            <div class="a4-store-name-en" id="rStoreName">RETAIL STORE</div>
+            <div style="font-size: 12px; color: #475569; margin-top: 5px;">
+              VAT No / الرقم الضريبي: <b id="rStoreVat">300000000000003</b><br>
+              CR No / السجل التجاري: <b id="rStoreCr">—</b><br>
+              <span id="rStoreAddr">Jeddah, Saudi Arabia</span>
+            </div>
+          </td>
+          <td style="width: 40%; vertical-align: top;">
+            <div class="a4-inv-title">TAX INVOICE</div>
+            <div class="a4-inv-title-ar">فاتورة ضريبية</div>
+            <div style="font-size: 12px; color: #475569; text-align: right; margin-top: 6px;">
+              Invoice No / رقم الفاتورة: <b id="rInvNo">INV-0001</b> <span id="rTermBadge" style="font-size:11px; background:#e0f2fe; color:#0369a1; padding:1px 5px; border-radius:3px;"></span><br>
+              Date / التاريخ: <span id="rInvDate">2026-11-09</span><br>
+              Time / الوقت: <span id="rInvTime">20:48:21</span>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="a4-party-boxes">
+        <div class="a4-p-box">
+          <div class="a4-p-box-title"><span>BUYER / بيانات العميل</span><span id="rBuyerBadge">REGISTERED</span></div>
+          Name / الاسم: <b id="rCustName">Walk-in Customer</b><br>
+          Phone / الهاتف: <span id="rBuyerPhone">N/A</span><br>
+          VAT No / الرقم الضريبي: <span id="rBuyerVat">N/A</span> | CR: <span id="rBuyerCr">N/A</span><br>
+          Address / العنوان: <span id="rBuyerAddr">N/A</span>
+        </div>
+        <div class="a4-p-box">
+          <div class="a4-p-box-title"><span>PAYMENT / شروط السداد</span><span id="rPayTerm">CASH</span></div>
+          Payment Mode / طريقة الدفع: <b id="rPayMethod">CASH</b><br>
+          Paid at Counter / المدفوع حالياً: <span id="rPaidCounter">0.00</span> SAR<br>
+          Charged to Account / آجل على الحساب: <span id="rChargedCredit">0.00</span> SAR
         </div>
       </div>
-    </div>
 
-    <div style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:6px; padding:8px 12px; margin-bottom:12px; font-size:12px; display:flex; justify-content:space-between;">
-      <div>Customer / العميل: <b id="rCustName">WALK-IN CUSTOMER</b></div>
-      <div>Payment / الدفع: <b id="rPayMethod">CASH</b></div>
-    </div>
+      <table class="a4-items-table">
+        <thead>
+          <tr>
+            <th width="34">#<span class="ar-sub">م</span></th>
+            <th style="text-align:left;">Item Description<span class="ar-sub" style="text-align:left;">الوصف</span></th>
+            <th width="68">Unit<span class="ar-sub">الوحدة</span></th>
+            <th width="64">Qty<span class="ar-sub">الكمية</span></th>
+            <th width="82">Unit Price<span class="ar-sub">سعر الوحدة</span></th>
+            <th width="85">Taxable (SAR)<span class="ar-sub">الخاضع</span></th>
+            <th width="72">VAT (15%)<span class="ar-sub">الضريبة</span></th>
+            <th width="92" style="text-align: right;">Total (SAR)<span class="ar-sub" style="text-align:right;">الإجمالي</span></th>
+          </tr>
+        </thead>
+        <tbody id="rItemsBody"></tbody>
+      </table>
 
-    <table class="rcpt-table" style="width:100%; border-collapse:collapse; font-size:12px; margin-bottom:14px;">
-      <thead>
-        <tr style="background:#f1f5f9;">
-          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:left;">Description / الوصف</th>
-          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">Unit / الوحدة</th>
-          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">Qty / الكمية</th>
-          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">Price / السعر</th>
-          <th style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">Total / الإجمالي</th>
-        </tr>
-      </thead>
-      <tbody id="rItemsBody"></tbody>
-    </table>
+      <div class="a4-bottom-section">
+        <div class="a4-qr-box">
+          <div id="rQrCanvas"></div>
+        </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-top:12px;">
-      <div style="display:flex; align-items:center; gap:12px; border:1px solid #cbd5e1; border-radius:8px; padding:10px; background:#f8fafc;">
-        <div id="rQrCanvas" style="display:inline-block;"></div>
-        <div style="font-size:11px; color:#334155; line-height:1.5;">
-          <b>ZATCA Phase-2 Electronic Invoice</b><br>
-          <span style="direction:rtl; display:block; color:#0284c7; font-weight:bold;">فاتورة إلكترونية معتمدة</span>
-          <div style="margin-top:8px; border:2px solid #0284c7; border-radius:8px; padding:6px 10px; text-align:center; color:#0369a1; font-weight:800;">
-            <span id="rSealText">OFFICIAL SEAL / الختم الرسمي</span>
+        <div class="a4-bank-box">
+          <div class="a4-bank-title">Bank Details / الحساب البنكي:</div>
+          Bank Name: <b id="rBankName">N/A</b><br>
+          Account No: <b id="rAccNo">N/A</b><br>
+          IBAN: <b id="rIban">N/A</b>
+          <div style="font-size: 10px; color: #64748b; margin-top: 8px;">
+            🛡️ ZATCA Phase-2 Compliant Electronic Invoice<br>
+            فاتورة إلكترونية معتمدة من هيئة الزكاة والضريبة والجمارك
+          </div>
+        </div>
+
+        <div>
+          <table class="a4-totals-table">
+            <tr>
+              <td>Total Taxable / الخاضع:</td>
+              <td style="text-align: right;"><b id="rSubtotal">0.00</b></td>
+            </tr>
+            <tr>
+              <td>VAT 15% / الضريبة:</td>
+              <td style="text-align: right;"><b id="rVat">0.00</b></td>
+            </tr>
+            <tr class="grand-row">
+              <td>Grand Total / الإجمالي:</td>
+              <td style="text-align: right;"><b id="rNetTotal">0.00 SAR</b></td>
+            </tr>
+            <tr>
+              <td>Previous Balance / الرصيد:</td>
+              <td style="text-align: right;"><span id="rPrevBal">0.00</span></td>
+            </tr>
+            <tr style="font-weight: bold; color: #dc2626;">
+              <td>Net Balance Due / المتبقي:</td>
+              <td style="text-align: right;"><span id="rNetBal">0.00 SAR</span></td>
+            </tr>
+          </table>
+
+          <div class="a4-seal-wrap" id="rSealContainer">
+            <div style="font-size: 11px; color: #64748b; margin-bottom: 4px;">Official Seal & Signature / الختم الرسمي</div>
+            <img id="rSealImg" src="" style="display: none;">
+            <div class="a4-seal-fallback" id="rSealBox">
+              <div id="rSealAr" style="font-size: 12px; direction: rtl;">الختم الرسمي</div>
+              <div id="rSealEn" style="font-size: 10px; margin-top: 2px;">OFFICIAL SEAL</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="rcpt-totals" style="width:270px; border:1px solid #cbd5e1; border-radius:6px; padding:10px; background:#fff;">
-        <div class="rcpt-tot-row"><span>Subtotal (Excl. VAT):</span><span id="rSubtotal">0.00 SAR</span></div>
-        <div class="rcpt-tot-row"><span>VAT (15%):</span><span id="rVat">0.00 SAR</span></div>
-        <div class="rcpt-tot-row grand"><span>NET TOTAL:</span><span id="rNetTotal">0.00 SAR</span></div>
-        <div class="rcpt-tot-row" style="margin-top:4px;"><span>Cash Paid / المدفوع:</span><span id="rCashPaid">0.00 SAR</span></div>
-        <div class="rcpt-tot-row"><span>Change Return / باقي:</span><span id="rChangeReturn">0.00 SAR</span></div>
+      <div style="margin-top: 25px; border-top: 1px solid #e2e8f0; padding-top: 8px; font-size: 11px; color: #64748b; text-align: center;">
+        Thank you for your business! نشكركم على حسن تعاملكم معنا<br>
+        Original Tax Invoice generated electronically.
       </div>
-    </div>
-
-    <div class="rcpt-footer" style="margin-top:14px; border-top:1px solid #e2e8f0; padding-top:8px; font-size:11px; color:#475569; text-align:center;">
-      <p>Thank You For Shopping With Us / شكراً لزيارتكم</p>
-    </div>
     </div>
   </div>
 
@@ -1373,6 +1450,10 @@
       const isCredit = (selectedPayMethod === 'CREDIT');
       const isReturn = (subMode === 'return') ? 1 : 0;
 
+      const prevBalVal = activeParty ? (parseFloat(activeParty.current_balance) || 0) : 0;
+      const balDeltaVal = (activeParty && isCredit) ? (isReturn ? -netTotal : netTotal) : 0;
+      const netBalVal = Number((prevBalVal + balDeltaVal).toFixed(2));
+
       const uniqueId = Date.now();
       const invoiceNo = await generateSequentialInvoiceNo(cfg.terminalId, invDate);
       const zatcaQr = generateZatcaQrBase64(
@@ -1404,6 +1485,15 @@
         zatca_qr: zatcaQr,
         source_device: 'MOBILE',
         is_synced: 0
+      };
+
+      const fullPrintInvData = {
+        ...invRecord,
+        customer_cr: activeParty ? activeParty.cr_number : null,
+        customer_address: activeParty ? (activeParty.short_address || activeParty.city_en || '') : null,
+        prev_balance: prevBalVal,
+        net_balance: netBalVal,
+        party: activeParty
       };
 
       const itemsRecords = cart.map((it, i) => {
@@ -1463,7 +1553,7 @@
         }
 
         if (action === 'thermal') {
-          await printMobileThermalInvoice(uniqueId, { ...invRecord, items: itemsRecords }, cfg);
+          await printMobileThermalInvoice(uniqueId, { ...fullPrintInvData, items: itemsRecords }, cfg);
         } else if (action === 'a4') {
           try {
             await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
@@ -1472,10 +1562,10 @@
               body: JSON.stringify({ invoiceId: uniqueId, template: 'a4' })
             });
           } catch (e) {}
-          await shareInvoiceAsPdf(uniqueId, { ...invRecord, items: itemsRecords }, activeParty && activeParty.phone ? activeParty.phone : '', false);
+          await printMobileA4Invoice(uniqueId, { ...fullPrintInvData, items: itemsRecords }, cfg);
         } else if (action === 'whatsapp') {
           const phone = activeParty && activeParty.phone ? activeParty.phone : '';
-          await shareInvoiceAsPdf(uniqueId, { ...invRecord, items: itemsRecords }, phone, true);
+          await shareInvoiceAsPdf(uniqueId, { ...fullPrintInvData, items: itemsRecords }, phone, true);
         } else {
           alert(`✅ ബിൽ വിജയകരമായി സേവ് ചെയ്തു! [${invoiceNo}]`);
         }
@@ -1701,23 +1791,10 @@
 
     async function reprintBill(id) {
       const cfg = getCloudConfig();
-      try {
-        await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ invoiceId: id, template: '80mm' })
-        });
-        alert('✅ Reprint command sent to Thermal Printer!');
-      } catch (e) {
-        alert('PC Local Printer Offline: ' + e.message);
-      }
-    }
-
-    async function shareRecentBillImage(id) {
       const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
       const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
       if (inv) {
-        await shareInvoiceAsImage(id, { ...inv, items: items || [] });
+        await printMobileThermalInvoice(id, { ...inv, items: items || [] }, cfg);
       }
     }
 
@@ -1742,67 +1819,379 @@
       return qrVal;
     }
 
+    // EXACT 80MM THERMAL RECEIPT FORMAT (Matches invoice_80mm.html)
     async function printMobileThermalInvoice(invoiceId, inv, cfg) {
       const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
       const store = storeSettings || {};
+      const storeEn = store.company_name_en || 'STORE NAME';
       const storeAr = store.company_name_ar || 'اسم المتجر';
-      const storeEn = store.company_name_en || 'RETAIL STORE';
-      const totalAmt = Number(inv.total_amount || 0).toFixed(2);
-      const subAmt = Number(inv.subtotal || 0).toFixed(2);
-      const vatAmt = Number(inv.vat_amount || 0).toFixed(2);
-      const cashPaid = Number(inv.paid_cash || inv.total_amount || 0).toFixed(2);
-      const changeRet = Number(inv.change_amount || 0).toFixed(2);
+      const storeVat = store.vat_number || '--';
+      const storeCr = store.cr_number || '';
+
+      const addrParts = [];
+      if (store.building_no) addrParts.push('Bldg ' + store.building_no);
+      if (store.street_en) addrParts.push(store.street_en);
+      if (store.district_en) addrParts.push(store.district_en);
+      if (store.city_en) addrParts.push(store.city_en);
+      if (store.short_address) addrParts.push('(' + store.short_address + ')');
+      const fullAddr = addrParts.length > 0 ? addrParts.join(', ') : (store.city_en ? store.city_en + ', Saudi Arabia' : 'Jeddah, Saudi Arabia');
+
+      const totalAmt = parseFloat(inv.total_amount) || 0;
+      const subAmt = parseFloat(inv.subtotal) || 0;
+      const vatAmt = parseFloat(inv.vat_amount) || 0;
+      const paidCashVal = parseFloat(inv.paid_cash) || totalAmt;
+      const changeReturnVal = parseFloat(inv.change_amount) || (paidCashVal > totalAmt ? paidCashVal - totalAmt : 0);
+
+      const pMode = (inv.payment_method || 'CASH').toUpperCase();
+      let pModeText = 'CASH / نقداً';
+      if (pMode === 'BANK') pModeText = 'CARD / بطاقة شبكة';
+      else if (pMode === 'CREDIT') pModeText = 'CREDIT / آجل';
+      else if (pMode === 'SPLIT') pModeText = 'SPLIT / متعدد';
+
+      let counterText = '';
+      if (inv.invoice_no) {
+        const parts = inv.invoice_no.split('-');
+        if (parts[0].startsWith('T') || parts[0].startsWith('M')) {
+          counterText = 'Counter: ' + parts[0];
+        } else if (inv.terminal_id) {
+          counterText = 'Counter: ' + inv.terminal_id;
+        }
+      }
 
       const itemsHtml = (inv.items || []).map(it => {
-        const label = (it.name_ar && it.name_ar.trim()) ? it.name_ar : (it.name_en || '');
-        return `<tr>
-          <td style="padding:2px 0; font-weight:800;">${label}</td>
-          <td style="text-align:center; font-weight:800;">${it.quantity}</td>
-          <td style="text-align:right; font-weight:800;">${Number(it.line_total || 0).toFixed(2)}</td>
-        </tr>`;
+        let displayName = it.name_en || '';
+        let isArabic = false;
+        if (it.name_ar && it.name_ar.trim() !== '') {
+          displayName = it.name_ar;
+          isArabic = true;
+        }
+        return `
+          <tr>
+            <td class="item-name-cell ${isArabic ? 'item-ar' : ''}">${displayName}</td>
+            <td align="center" class="bold">${it.quantity}</td>
+            <td align="right">${parseFloat(it.selling_price || 0).toFixed(2)}</td>
+            <td align="right" class="bold">${parseFloat(it.line_total || 0).toFixed(2)}</td>
+          </tr>
+        `;
       }).join('');
 
       const qrTempHolder = document.createElement('div');
       let qrImgSrc = '';
       try {
         if (window.QRCode) {
-          new QRCode(qrTempHolder, { text: qrData || 'https://zatca.gov.sa', width: 140, height: 140, correctLevel: QRCode.CorrectLevel.M });
+          new QRCode(qrTempHolder, {
+            text: qrData || 'https://zatca.gov.sa',
+            width: 190,
+            height: 190,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.L
+          });
           const cnv = qrTempHolder.querySelector('canvas');
           const img = qrTempHolder.querySelector('img');
           qrImgSrc = img ? img.src : (cnv ? cnv.toDataURL('image/png') : '');
         }
       } catch (e) {}
 
-      const printWin = window.open('', '_blank', 'width=380,height=600');
+      const printWin = window.open('', '_blank', 'width=380,height=650');
       if (printWin) {
-        printWin.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-          body { width:72mm; margin:0 auto; padding:4px; font-family:Tahoma,Arial,sans-serif; font-size:11px; color:#000; }
-          .center { text-align:center; }
-          .bold { font-weight:900; }
-          .line { border-top:1px dashed #000; margin:6px 0; }
-          table { width:100%; border-collapse:collapse; font-size:11px; }
-          .row { display:flex; justify-content:space-between; margin:2px 0; }
-          #mQr { display:flex; justify-content:center; margin:8px 0; }
-          #mQr img { width:140px; height:140px; }
-        </style></head><body>
-          <div class="center bold" style="font-size:14px; direction:rtl;">${storeAr}</div>
-          <div class="center bold" style="font-size:12px;">${storeEn}</div>
-          <div class="center" style="font-size:10px;">VAT: ${store.vat_number || '300000000000003'}</div>
-          <div class="line"></div>
-          <div class="row"><span>رقم الفاتورة:</span><b>${inv.invoice_no}</b></div>
-          <div class="row"><span>التاريخ:</span><b>${inv.invoice_date} ${inv.invoice_time || ''}</b></div>
-          <div class="row"><span>العميل:</span><b>${inv.customer_name || 'WALK-IN CUSTOMER'}</b></div>
-          <div class="line"></div>
-          <table><thead><tr><th align="left">الوصف</th><th>كمية</th><th align="right">المجموع</th></tr></thead><tbody>${itemsHtml}</tbody></table>
-          <div class="line"></div>
-          <div class="row"><span>Subtotal:</span><b>${subAmt}</b></div>
-          <div class="row"><span>VAT 15%:</span><b>${vatAmt}</b></div>
-          <div class="row bold" style="font-size:13px;"><span>NET TOTAL:</span><b>${totalAmt} SAR</b></div>
-          <div class="row"><span>Cash Paid:</span><b>${cashPaid}</b></div>
-          <div class="row"><span>Change Return / باقي:</span><b>${changeRet}</b></div>
-          <div id="mQr">${qrImgSrc ? `<img src="${qrImgSrc}" alt="QR">` : ''}</div>
-          <div class="center bold" style="direction:rtl; margin-top:6px;">شكراً لزيارتكم</div>
-        </body></html>`);
+        printWin.document.write(`<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>POS Receipt 80mm</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: "Segoe UI", Tahoma, Arial, sans-serif;
+      color: #000;
+    }
+    @page {
+      margin: 0;
+      size: 80mm auto;
+    }
+    body {
+      width: 70mm;
+      margin: 0 !important;
+      padding: 2mm 1.5mm 8mm 3.5mm;
+      background: #fff;
+      font-size: 11.5px;
+      line-height: 1.35;
+      direction: ltr !important;
+    }
+    .text-center { text-align: center !important; }
+    .text-right { text-align: right !important; }
+    .bold { font-weight: 900; }
+    .store-title {
+      font-size: 15px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: center;
+      line-height: 1.2;
+    }
+    .store-ar {
+      font-size: 14px;
+      font-weight: 900;
+      direction: rtl !important;
+      text-align: center;
+      margin-top: 2px;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+    .meta-line {
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-top: 1px;
+      text-align: center;
+    }
+    .dashed-divider {
+      border-top: 1.5px dashed #000;
+      margin: 5px 0;
+      width: 100%;
+    }
+    .inv-title-box {
+      border: 1.2px solid #000;
+      padding: 2px 4px;
+      margin: 4px 0;
+      text-align: center;
+    }
+    .inv-title {
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .inv-title-ar {
+      font-size: 11.5px;
+      font-weight: 900;
+      direction: rtl !important;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+    .info-table {
+      width: 100%;
+      font-size: 11px;
+      font-weight: 800;
+      margin-bottom: 3px;
+      border-collapse: collapse;
+    }
+    .info-table td {
+      padding: 1px 0;
+      vertical-align: top;
+    }
+    .ar-subtext {
+      font-size: 9.5px;
+      font-weight: 800;
+      direction: rtl !important;
+      display: block;
+      color: #111;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 4px 0;
+      font-size: 11px;
+    }
+    .items-table th {
+      border-top: 1.5px dashed #000;
+      border-bottom: 1.5px dashed #000;
+      padding: 3px 0;
+      font-weight: 900;
+      font-size: 10px;
+    }
+    .items-table td {
+      padding: 3px 0;
+      vertical-align: middle;
+    }
+    .item-name-cell {
+      font-weight: 900;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      max-width: 130px;
+    }
+    .item-ar {
+      direction: rtl !important;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+    .totals-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+    .totals-table td {
+      padding: 2px 0;
+      vertical-align: middle;
+    }
+    .grand-total-row {
+      font-size: 13.5px;
+      font-weight: 900;
+      border-top: 1.5px dashed #000;
+      border-bottom: 1.5px dashed #000;
+    }
+    .grand-total-row td {
+      padding: 4px 0;
+    }
+    .qr-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 4px 0;
+      text-align: center;
+    }
+    #qrcode {
+      display: inline-block;
+      margin: 0 auto;
+      background: #fff;
+      padding: 3px;
+    }
+    #qrcode canvas, #qrcode img {
+      width: 190px !important;
+      height: 190px !important;
+      margin: 0 auto;
+      image-rendering: pixelated;
+    }
+    .footer-note {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-align: center;
+      margin-top: 5px;
+    }
+    .footer-ar {
+      font-size: 12px;
+      font-weight: 900;
+      direction: rtl !important;
+      font-family: Tahoma, Arial, sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="text-center">
+    <div class="store-title">${storeEn}</div>
+    <div class="store-ar">${storeAr}</div>
+    <div class="meta-line">VAT No / الرقم الضريبي: <span class="bold">${storeVat}</span></div>
+    ${storeCr ? `<div class="meta-line">CR No / السجل التجاري: <span class="bold">${storeCr}</span></div>` : ''}
+    <div class="meta-line">${fullAddr}</div>
+    ${store.phone ? `<div class="meta-line">Tel / هاتف: ${store.phone}</div>` : ''}
+  </div>
+
+  <div class="inv-title-box">
+    <div class="inv-title">SIMPLIFIED TAX INVOICE</div>
+    <div class="inv-title-ar">فاتورة ضريبية مبسطة</div>
+  </div>
+
+  <table class="info-table">
+    <tr>
+      <td width="48%">
+        Invoice No
+        <span class="ar-subtext">رقم الفاتورة</span>
+      </td>
+      <td width="52%" align="right" class="bold">
+        <span>${inv.invoice_no || '--'}</span>
+        ${counterText ? `<div style="font-size: 10px; color: #333;">${counterText}</div>` : ''}
+      </td>
+    </tr>
+    <tr>
+      <td>
+        Date & Time
+        <span class="ar-subtext">التاريخ والوقت</span>
+      </td>
+      <td align="right" class="bold">${inv.invoice_date || ''} ${inv.invoice_time || ''}</td>
+    </tr>
+    <tr>
+      <td>
+        Customer
+        <span class="ar-subtext">العميل</span>
+      </td>
+      <td align="right" class="bold">${inv.customer_name || 'WALK-IN CUSTOMER'}</td>
+    </tr>
+  </table>
+
+  <table class="items-table">
+    <thead>
+      <tr>
+        <th align="left">
+          Description
+          <span class="ar-subtext" style="text-align:left;">الوصف</span>
+        </th>
+        <th width="24" align="center">
+          Qty
+          <span class="ar-subtext" style="text-align:center;">كمية</span>
+        </th>
+        <th width="42" align="right">
+          Price
+          <span class="ar-subtext" style="text-align:right;">السعر</span>
+        </th>
+        <th width="48" align="right">
+          Total
+          <span class="ar-subtext" style="text-align:right;">المجموع</span>
+        </th>
+      </tr>
+    </thead>
+    <tbody>${itemsHtml}</tbody>
+  </table>
+
+  <div class="dashed-divider"></div>
+
+  <table class="totals-table">
+    <tr>
+      <td align="left">
+        Subtotal (Excl. VAT)
+        <span class="ar-subtext">المجموع الفرعي (غير شامل الضريبة)</span>
+      </td>
+      <td align="right" class="bold">${subAmt.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td align="left">
+        VAT (15%)
+        <span class="ar-subtext">ضريبة القيمة المضافة (١٥٪)</span>
+      </td>
+      <td align="right" class="bold">${vatAmt.toFixed(2)}</td>
+    </tr>
+    <tr class="grand-total-row">
+      <td align="left">
+        NET TOTAL (SAR)
+        <span class="ar-subtext">إجمالي المبلغ المستحق</span>
+      </td>
+      <td align="right">${totalAmt.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td align="left">
+        Payment Method
+        <span class="ar-subtext">طريقة الدفع</span>
+      </td>
+      <td align="right" class="bold">${pModeText}</td>
+    </tr>
+    <tr>
+      <td align="left">
+        Cash Tendered
+        <span class="ar-subtext">المبلغ المستلم</span>
+      </td>
+      <td align="right" class="bold">${paidCashVal.toFixed(2)}</td>
+    </tr>
+    <tr>
+      <td align="left">
+        Change Return
+        <span class="ar-subtext">المبلغ الباقي</span>
+      </td>
+      <td align="right" class="bold">${changeReturnVal.toFixed(2)}</td>
+    </tr>
+  </table>
+
+  <div class="qr-container">
+    <div id="qrcode">${qrImgSrc ? `<img src="${qrImgSrc}" alt="QR">` : ''}</div>
+  </div>
+
+  <div class="footer-note">
+    Thank You For Shopping With Us<br>
+    <span class="footer-ar">شكراً لزيارتكم</span>
+  </div>
+</body>
+</html>`);
         printWin.document.close();
         setTimeout(() => { try { printWin.focus(); printWin.print(); } catch (e) {} }, 450);
       } else {
@@ -1814,65 +2203,200 @@
           });
         } catch (e) {}
       }
-      alert(`✅ ബിൽ സേവ് ആയി & പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
+      alert(`✅ ബിൽ സേവ് ആയി & 80mm പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
     }
 
+    // POPULATE EXACT A4 INVOICE TEMPLATE (Matches invoice_a4.html)
+    function populateA4InvoiceStage(inv, qrData) {
+      const store = storeSettings || {};
+      const party = inv.party || (inv.party_id ? customersList.find(c => c.id === inv.party_id) : null) || null;
+      function f(val) { return (parseFloat(val) || 0).toFixed(2); }
+
+      document.getElementById('rStoreNameAr').innerText = store.company_name_ar || 'متجر التجزئة';
+      document.getElementById('rStoreName').innerText = store.company_name_en || 'RETAIL STORE';
+      document.getElementById('rStoreVat').innerText = store.vat_number || '300000000000003';
+      document.getElementById('rStoreCr').innerText = store.cr_number || '—';
+      document.getElementById('rStoreAddr').innerText = `${store.building_no || ''} ${store.street_en || ''}, ${store.district_en || ''}, ${store.city_en || 'Jeddah'}`.replace(/^[\s,]+|[\s,]+$/g, '') || 'Jeddah, Saudi Arabia';
+
+      document.getElementById('rInvNo').innerText = inv.invoice_no || 'INV-0001';
+      const termBadge = document.getElementById('rTermBadge');
+      if (inv.invoice_no && (inv.invoice_no.startsWith('T') || inv.invoice_no.startsWith('M'))) {
+        termBadge.innerText = 'Counter ' + inv.invoice_no.split('-')[0];
+        termBadge.style.display = 'inline';
+      } else {
+        termBadge.innerText = '';
+        termBadge.style.display = 'none';
+      }
+      document.getElementById('rInvDate').innerText = inv.invoice_date || '';
+      document.getElementById('rInvTime').innerText = inv.invoice_time || '';
+
+      document.getElementById('rBuyerBadge').innerText = party ? 'REGISTERED' : 'WALK-IN';
+      document.getElementById('rCustName').innerText = inv.customer_name || 'Walk-in Customer';
+      document.getElementById('rBuyerPhone').innerText = inv.customer_phone || (party ? party.phone : 'N/A') || 'N/A';
+      document.getElementById('rBuyerVat').innerText = inv.customer_vat || (party ? party.vat_number : 'N/A') || 'N/A';
+      document.getElementById('rBuyerCr').innerText = inv.customer_cr || (party ? party.cr_number : 'N/A') || 'N/A';
+      document.getElementById('rBuyerAddr').innerText = inv.customer_address || (party ? (party.short_address || party.city_en) : 'N/A') || 'N/A';
+
+      const payMode = (inv.payment_method || 'CASH').toUpperCase();
+      document.getElementById('rPayTerm').innerText = payMode;
+      document.getElementById('rPayMethod').innerText = payMode;
+      const counterPaid = (parseFloat(inv.paid_cash || 0) + parseFloat(inv.paid_bank || 0));
+      document.getElementById('rPaidCounter').innerText = f(counterPaid);
+      document.getElementById('rChargedCredit').innerText = f(inv.paid_credit);
+
+      document.getElementById('rBankName').innerText = store.bank_name || 'N/A';
+      document.getElementById('rAccNo').innerText = store.account_number || 'N/A';
+      document.getElementById('rIban').innerText = store.iban || 'N/A';
+
+      const tbody = document.getElementById('rItemsBody');
+      tbody.innerHTML = '';
+      (inv.items || []).forEach((it, idx) => {
+        const lineTot = parseFloat(it.line_total) || 0;
+        const vat = parseFloat(it.vat_amount) || (lineTot - (lineTot / 1.15));
+        const taxable = lineTot - vat;
+        const rate = it.selling_price || (it.quantity ? (lineTot / it.quantity) : 0);
+        const enName = (it.name_en || '').trim();
+        const arName = (it.name_ar || '').trim();
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td style="text-align:center;">${idx + 1}</td>
+          <td class="a4-item-desc-cell">
+            <div class="a4-item-line-en">${enName}</div>
+            ${arName ? `<div class="a4-item-line-ar">${arName}</div>` : ''}
+          </td>
+          <td style="text-align:center;">${it.unit || 'PCS'}</td>
+          <td style="text-align:center;">${it.quantity}</td>
+          <td style="text-align:right;">${f(rate)}</td>
+          <td style="text-align:right;">${f(taxable)}</td>
+          <td style="text-align:right;">${f(vat)}</td>
+          <td style="text-align: right; font-weight: bold;">${f(lineTot)}</td>
+        `;
+        tbody.appendChild(row);
+      });
+
+      const prevBal = inv.prev_balance !== undefined ? parseFloat(inv.prev_balance) : (party ? (parseFloat(party.current_balance) || 0) : 0);
+      const netBal = inv.net_balance !== undefined ? parseFloat(inv.net_balance) : prevBal;
+
+      document.getElementById('rSubtotal').innerText = f(inv.subtotal);
+      document.getElementById('rVat').innerText = f(inv.vat_amount);
+      document.getElementById('rNetTotal').innerText = f(inv.total_amount) + ' SAR';
+      document.getElementById('rPrevBal').innerText = f(prevBal);
+      document.getElementById('rNetBal').innerText = f(netBal) + ' SAR';
+
+      document.getElementById('rSealAr').innerText = store.company_name_ar || 'الختم الرسمي';
+      document.getElementById('rSealEn').innerText = store.company_name_en || 'OFFICIAL SEAL';
+
+      const sealImg = document.getElementById('rSealImg');
+      const sealBox = document.getElementById('rSealBox');
+      if (store.store_seal_img) {
+        sealImg.src = store.store_seal_img;
+        sealImg.style.display = 'inline-block';
+        sealBox.style.display = 'none';
+      } else {
+        sealImg.style.display = 'none';
+        sealBox.style.display = 'inline-flex';
+      }
+
+      const qrContainer = document.getElementById('rQrCanvas');
+      qrContainer.innerHTML = '';
+      if (window.QRCode) {
+        new QRCode(qrContainer, {
+          text: qrData || 'https://zatca.gov.sa',
+          width: 152,
+          height: 152,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      }
+    }
+
+    // DIRECT A4 PRINT (Matches invoice_a4.html)
+    async function printMobileA4Invoice(invoiceId, inv, cfg) {
+      try {
+        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
+        populateA4InvoiceStage(inv, qrData);
+        const a4HtmlContent = document.getElementById('hiddenReceiptCard').innerHTML;
+
+        const printWin = window.open('', '_blank', 'width=850,height=900');
+        if (printWin) {
+          printWin.document.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Tax Invoice A4 - ${inv.invoice_no}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Tahoma, Arial, sans-serif; }
+    body { background: #fff; color: #0f172a; padding: 20px 30px; width: 210mm; margin: 0 auto; font-size: 13px; }
+    @media print {
+      body { width: 100%; padding: 12mm 16mm; }
+      @page { size: A4; margin: 0; }
+    }
+    .a4-header-table { width: 100%; border-bottom: 2px solid #0284c7; padding-bottom: 12px; margin-bottom: 14px; border-collapse: collapse; }
+    .a4-store-name-ar { font-size: 21px; font-weight: 900; color: #0284c7; direction: rtl; text-align: left; line-height: 1.25; }
+    .a4-store-name-en { font-size: 16px; font-weight: 800; color: #0f172a; text-transform: uppercase; margin-top: 2px; }
+    .a4-inv-title { font-size: 22px; font-weight: 900; color: #0f172a; text-align: right; }
+    .a4-inv-title-ar { font-size: 14px; font-weight: bold; color: #0284c7; text-align: right; }
+
+    .a4-party-boxes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .a4-p-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 12px; font-size: 12px; line-height: 1.5; }
+    .a4-p-box-title { font-weight: bold; color: #0369a1; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+
+    table.a4-items-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+    table.a4-items-table th { background: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 11px; font-weight: bold; color: #334155; text-align: center; vertical-align: middle; }
+    table.a4-items-table th .ar-sub { display: block; font-size: 10.5px; color: #0284c7; direction: rtl; margin-top: 2px; }
+    table.a4-items-table td { border: 1px solid #cbd5e1; padding: 6px 8px; font-size: 12px; vertical-align: middle; }
+
+    .a4-item-desc-cell { max-width: 240px; line-height: 1.25; }
+    .a4-item-line-en { font-weight: 700; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; }
+    .a4-item-line-ar { color: #0369a1; font-weight: 700; direction: rtl; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; margin-top: 1px; }
+
+    .a4-bottom-section { display: grid; grid-template-columns: 175px 1fr 245px; gap: 14px; align-items: start; }
+    .a4-qr-box { width: 165px; height: 165px; border: 1px solid #cbd5e1; padding: 6px; border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+    .a4-qr-box canvas, .a4-qr-box img { width: 152px !important; height: 152px !important; }
+
+    .a4-bank-box { border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px 14px; font-size: 12px; line-height: 1.6; }
+    .a4-bank-title { font-weight: bold; color: #0369a1; border-bottom: 1px dashed #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; }
+
+    .a4-totals-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .a4-totals-table td { padding: 4px 6px; }
+    .a4-totals-table .grand-row td { font-size: 15px; font-weight: 900; color: #0369a1; border-top: 2px solid #0284c7; border-bottom: 2px solid #0284c7; padding: 6px; }
+
+    .a4-seal-wrap { text-align: center; margin-top: 14px; }
+    .a4-seal-wrap img { max-height: 115px; max-width: 195px; object-fit: contain; }
+    .a4-seal-fallback {
+      display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+      width: 145px; height: 105px; border: 2.5px solid #0284c7; border-radius: 10px;
+      color: #0369a1; font-weight: 800; padding: 6px; transform: rotate(-4deg);
+    }
+  </style>
+</head>
+<body>
+  ${a4HtmlContent}
+</body>
+</html>`);
+          printWin.document.close();
+          setTimeout(() => { try { printWin.focus(); printWin.print(); } catch (e) {} }, 500);
+          alert(`✅ ബിൽ സേവ് ആയി & A4 പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
+        } else {
+          await shareInvoiceAsPdf(invoiceId, inv, '', false);
+        }
+      } catch (e) {
+        await shareInvoiceAsPdf(invoiceId, inv, '', false);
+      }
+    }
+
+    // WHATSAPP A4 PDF SHARE (Exact invoice_a4.html layout)
     async function shareInvoiceAsPdf(invoiceId, inv, customPhone = '', openWhatsApp = true) {
       try {
         const cfg = getCloudConfig();
         const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
         const store = storeSettings || {};
-        const storeAr = store.company_name_ar || 'اسم المتجر';
         const storeEn = store.company_name_en || 'RETAIL STORE';
-
-        document.getElementById('rStoreNameAr').innerText = storeAr;
-        document.getElementById('rStoreName').innerText = storeEn;
-        document.getElementById('rStoreVat').innerText = store.vat_number || '300000000000003';
-        document.getElementById('rStoreAddr').innerText = store.city_en ? `${store.city_en}, Saudi Arabia` : 'Saudi Arabia';
-        document.getElementById('rSealText').innerText = `${storeAr} | ${storeEn}`;
-
-        document.getElementById('rInvNo').innerText = inv.invoice_no;
-        document.getElementById('rInvDate').innerText = `${inv.invoice_date} ${inv.invoice_time || ''}`;
-        document.getElementById('rCustName').innerText = inv.customer_name || 'WALK-IN CUSTOMER';
-
-        const tbody = document.getElementById('rItemsBody');
-        tbody.innerHTML = '';
-        (inv.items || []).forEach(it => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td style="border:1px solid #cbd5e1; padding:6px 8px;">
-              <div style="font-weight:700;">${it.name_en || ''}</div>
-              ${it.name_ar ? `<div style="font-size:11px; color:#0284c7; direction:rtl; text-align:left;">${it.name_ar}</div>` : ''}
-            </td>
-            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">${it.unit || 'PCS'}</td>
-            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:center;">${it.quantity}</td>
-            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right;">${Number(it.selling_price || 0).toFixed(2)}</td>
-            <td style="border:1px solid #cbd5e1; padding:6px 8px; text-align:right; font-weight:700;">${Number(it.line_total || 0).toFixed(2)}</td>
-          `;
-          tbody.appendChild(row);
-        });
-
         const totalAmt = Number(inv.total_amount || 0);
-        const cashPaid = Number(inv.paid_cash || totalAmt);
-        const changeRet = Number(inv.change_amount || 0);
 
-        document.getElementById('rSubtotal').innerText = Number(inv.subtotal || 0).toFixed(2) + ' SAR';
-        document.getElementById('rVat').innerText = Number(inv.vat_amount || 0).toFixed(2) + ' SAR';
-        document.getElementById('rNetTotal').innerText = totalAmt.toFixed(2) + ' SAR';
-        document.getElementById('rPayMethod').innerText = inv.payment_method || 'CASH';
-        document.getElementById('rCashPaid').innerText = cashPaid.toFixed(2) + ' SAR';
-        document.getElementById('rChangeReturn').innerText = changeRet.toFixed(2) + ' SAR';
-
-        const qrContainer = document.getElementById('rQrCanvas');
-        qrContainer.innerHTML = '';
-        if (window.QRCode) {
-          new QRCode(qrContainer, {
-            text: qrData || 'https://zatca.gov.sa',
-            width: 145,
-            height: 145,
-            correctLevel: QRCode.CorrectLevel.M
-          });
-        }
+        populateA4InvoiceStage(inv, qrData);
 
         const stageEl = document.getElementById('pdfRenderStage');
         if (stageEl) {
@@ -1898,7 +2422,6 @@
           if (stageEl) stageEl.style.display = 'none';
         }
         if (pdfBlob) {
-
           const pdfFile = new File([pdfBlob], `${inv.invoice_no}.pdf`, { type: 'application/pdf' });
           if (openWhatsApp && navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
             try {
