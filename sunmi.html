@@ -5,8 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0f172a">
   <meta name="mobile-web-app-capable" content="yes">
-  <title>SAMPOS Mobile Floor Assistant</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <title>SAMPOS Mobile Local Assistant</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -219,7 +218,7 @@
 
   <div class="container">
     <div class="top-bar">
-      <h2>📱 SAMPOS Cloud Mobile</h2>
+      <h2>📱 SAMPOS Local Mobile</h2>
       <div class="top-btns">
         <button class="btn-icon btn-recent" onclick="openRecentBillsModal()">📜 Recent</button>
         <button class="btn-icon" onclick="loadInitialData(true)">🔄 Sync</button>
@@ -231,7 +230,7 @@
       <button class="mode-btn active" id="modeSale" onclick="switchMainMode('sale')">⚡ Sales</button>
       <button class="mode-btn" id="modePurchase" onclick="switchMainMode('purchase')">📦 Purchase</button>
       <button class="mode-btn" id="modeStock" onclick="switchMainMode('stock')">📊 Stock Take</button>
-      <button class="mode-btn" onclick="openServerConfigModal()">☁️ Cloud</button>
+      <button class="mode-btn" onclick="openServerConfigModal()">🖥️ Server</button>
     </div>
 
     <div class="submode-bar" id="submodeBar">
@@ -359,7 +358,7 @@
       <div class="checkout-grid" id="checkoutSection">
         <button class="btn-checkout btn-thermal" onclick="executeCheckout('thermal')">🖨️ Save & Print (80mm)</button>
         <button class="btn-checkout btn-a4" onclick="executeCheckout('a4')">📄 Save & A4</button>
-        <button class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save to Cloud/PC</button>
+        <button class="btn-checkout btn-noprint" onclick="executeCheckout('noprint')">💾 Save to PC</button>
         <button class="btn-checkout btn-whatsapp" onclick="executeCheckout('whatsapp')">📲 WhatsApp PDF</button>
       </div>
 
@@ -410,27 +409,23 @@
     </div>
   </div>
 
-  <!-- Cloud & Local Printer Configuration Modal -->
+  <!-- Local PC Server Configuration Modal -->
   <div class="modal-overlay" id="serverModal">
     <div class="modal-card">
-      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;">☁️ Supabase Cloud & Local Print Setup</h3>
+      <h3 style="color:#38bdf8; margin-bottom:12px; font-size:16px;">🖥️ Local PC Server Setup (IP & Port)</h3>
       <div class="form-group">
-        <label>Supabase Project URL:</label>
-        <input type="text" id="cfgSbUrl" class="form-input" placeholder="https://xxxx.supabase.co">
-      </div>
-      <div class="form-group">
-        <label>Supabase Anon Key:</label>
-        <input type="text" id="cfgSbKey" class="form-input" placeholder="sb_publishable_...">
-      </div>
-      <div class="form-group">
-        <label>Shop Local PC IP (പ്രിന്ററിന് മാത്രം - ഓപ്ഷണൽ):</label>
+        <label>Shop Main PC IP Address *:</label>
         <input type="text" id="cfgServerIp" class="form-input" placeholder="192.168.100.141">
+      </div>
+      <div class="form-group">
+        <label>Server Port *:</label>
+        <input type="text" id="cfgServerPort" class="form-input" placeholder="6060">
       </div>
       <div class="form-group">
         <label>Mobile Terminal Prefix:</label>
         <input type="text" id="cfgTerminalId" class="form-input" placeholder="M1">
       </div>
-      <button class="btn-primary" onclick="saveServerConfig()">💾 Save & Connect Cloud</button>
+      <button class="btn-primary" onclick="saveServerConfig()">💾 Save & Connect PC Server</button>
       <button class="btn-icon" style="width:100%; margin-top:8px;" onclick="closeServerConfigModal()">Cancel</button>
     </div>
   </div>
@@ -611,53 +606,34 @@
   </div>
 
   <script>
-    const DEFAULT_SB_URL = 'https://kuaepkcztqwxufigxedh.supabase.co';
-    const DEFAULT_SB_KEY = 'sb_publishable_qX_T6777_1x3F0nO15B5sA_rO3sJ8L5';
-
-    let sbClient = null;
     let isSaving = false;
 
-    function getCloudConfig() {
+    function getServerConfig() {
+      const defaultIp = (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1')
+        ? window.location.hostname
+        : '192.168.100.141';
       return {
-        sbUrl: localStorage.getItem('sampos_sb_url') || DEFAULT_SB_URL,
-        sbKey: localStorage.getItem('sampos_sb_key') || DEFAULT_SB_KEY,
-        ip: localStorage.getItem('pos_mobile_server_ip') || window.location.hostname || '192.168.100.141',
+        ip: localStorage.getItem('pos_mobile_server_ip') || defaultIp,
         port: localStorage.getItem('pos_mobile_server_port') || '6060',
         terminalId: localStorage.getItem('pos_mobile_terminal_id') || 'M1'
       };
     }
 
-    function initSupabase() {
-      const cfg = getCloudConfig();
-      if (window.supabase && cfg.sbUrl && cfg.sbKey) {
-        sbClient = window.supabase.createClient(cfg.sbUrl, cfg.sbKey);
+    function getApiBase() {
+      const cfg = getServerConfig();
+      if (window.location.protocol.startsWith('http') && window.location.hostname === cfg.ip && window.location.port === cfg.port) {
+        return '';
       }
+      return `http://${cfg.ip}:${cfg.port}`;
     }
 
     // ZATCA Sequential Invoice Number Generator
-    async function generateSequentialInvoiceNo(terminalId, invDate) {
+    function generateLocalSequentialInvoiceNo(terminalId, invDate) {
       const dateStr = invDate.replace(/-/g, '');
       const prefix = `${terminalId}-${dateStr}-`;
-      try {
-        const { data } = await sbClient
-          .from('invoices')
-          .select('invoice_no')
-          .ilike('invoice_no', `${prefix}%`)
-          .order('invoice_no', { ascending: false })
-          .limit(1);
-
-        let nextNum = 1;
-        if (data && data.length > 0 && data[0].invoice_no) {
-          const parts = data[0].invoice_no.split('-');
-          const lastSeq = parseInt(parts[parts.length - 1], 10);
-          if (!isNaN(lastSeq)) nextNum = lastSeq + 1;
-        }
-        return `${prefix}${String(nextNum).padStart(4, '0')}`;
-      } catch (e) {
-        const fallbackSeq = parseInt(localStorage.getItem(`seq_${prefix}`) || '0', 10) + 1;
-        localStorage.setItem(`seq_${prefix}`, String(fallbackSeq));
-        return `${prefix}${String(fallbackSeq).padStart(4, '0')}`;
-      }
+      const seq = parseInt(localStorage.getItem(`seq_${prefix}`) || '0', 10) + 1;
+      localStorage.setItem(`seq_${prefix}`, String(seq));
+      return `${prefix}${String(seq).padStart(4, '0')}`;
     }
 
     // ZATCA Base64 TLV QR Generator
@@ -704,7 +680,6 @@
     let scanAnimFrame = null;
 
     window.onload = async () => {
-      initSupabase();
       if ('BarcodeDetector' in window) {
         try {
           barcodeDetector = new BarcodeDetector({
@@ -715,52 +690,38 @@
       await loadInitialData();
     };
 
-    async function fetchAllProducts() {
-      let all = [];
-      let from = 0;
-      const step = 1000;
-      while (true) {
-        const { data, error } = await sbClient
-          .from('products')
-          .select('*')
-          .order('id', { ascending: true })
-          .range(from, from + step - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        all = all.concat(data);
-        if (data.length < step) break;
-        from += step;
-      }
-      return all;
-    }
-
     async function loadInitialData(showToast = false) {
+      const base = getApiBase();
+      const cfg = getServerConfig();
       try {
-        if (!sbClient) initSupabase();
-        document.getElementById('serverStatusBadge').innerHTML = '⏳ Syncing...';
+        document.getElementById('serverStatusBadge').innerHTML = `⏳ Connecting (${cfg.ip}:${cfg.port})...`;
         document.getElementById('serverStatusBadge').style.color = '#f59e0b';
 
-        const [prods, partiesRes, setRes] = await Promise.all([
-          fetchAllProducts(),
-          sbClient.from('parties').select('*').order('name_en', { ascending: true }),
-          sbClient.from('settings').select('*').eq('id', 1).maybeSingle()
+        const [prodRes, partyRes, setRes] = await Promise.all([
+          fetch(`${base}/api/products`),
+          fetch(`${base}/api/parties`),
+          fetch(`${base}/api/settings`).catch(() => null)
         ]);
 
-        if (partiesRes.error) throw partiesRes.error;
+        if (!prodRes.ok) throw new Error(`HTTP ${prodRes.status}`);
 
-        productsList = prods || [];
-        const allParties = partiesRes.data || [];
+        const prodJson = await prodRes.json();
+        const partyJson = partyRes.ok ? await partyRes.json() : { data: [] };
+        const setJson = (setRes && setRes.ok) ? await setRes.json() : { data: {} };
+
+        productsList = Array.isArray(prodJson) ? prodJson : (prodJson.data || []);
+        const allParties = Array.isArray(partyJson) ? partyJson : (partyJson.data || []);
         customersList = allParties.filter(p => (p.type || '').toLowerCase() === 'customer' || !p.type);
         vendorsList = allParties.filter(p => (p.type || '').toLowerCase() === 'vendor' || (p.type || '').toLowerCase() === 'supplier');
-        if (setRes.data) storeSettings = setRes.data;
+        storeSettings = setJson.data || setJson || {};
 
-        document.getElementById('serverStatusBadge').innerHTML = `🟢 Cloud (${productsList.length})`;
+        document.getElementById('serverStatusBadge').innerHTML = `🟢 PC Connected (${productsList.length})`;
         document.getElementById('serverStatusBadge').style.color = '#4ade80';
-        if (showToast) showScanSuccessToast(`✅ ${productsList.length} പ്രോഡക്റ്റുകൾ സിങ്ക് ചെയ്തു`);
+        if (showToast) showScanSuccessToast(`✅ PC സെർവറുമായി കണക്ട് ചെയ്തു (${productsList.length} items)`);
       } catch (err) {
-        document.getElementById('serverStatusBadge').innerHTML = '🔴 Offline';
+        document.getElementById('serverStatusBadge').innerHTML = `🔴 Disconnected (${cfg.ip}:${cfg.port})`;
         document.getElementById('serverStatusBadge').style.color = '#f87171';
-        if (showToast) showScanSuccessToast('Sync Error: ' + err.message, true);
+        if (showToast) showScanSuccessToast('Server Connection Error: ' + err.message, true);
       }
     }
 
@@ -996,15 +957,19 @@
         selling_price: sellP,
         unit: unitVal,
         vat_rate: 15.0,
-        stock_quantity: stockVal,
-        is_synced: 0,
-        source_device: 'MOBILE'
+        stock_quantity: stockVal
       };
 
       try {
-        const { data, error } = await sbClient.from('products').insert(newProd).select().single();
-        if (error) throw error;
-        const created = data || { ...newProd, id: Date.now() };
+        const res = await fetch(`${getApiBase()}/api/products`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newProd)
+        });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || 'Failed to add item');
+
+        const created = json.data || { ...newProd, id: json.id || Date.now() };
         productsList.push(created);
         closeQuickItemModal();
         addItemToCartOrStock(created);
@@ -1424,7 +1389,7 @@
       document.querySelectorAll('.btn-checkout').forEach(b => b.disabled = disabled);
     }
 
-    // SAVE INVOICE WITH ZATCA PHASE 2 SEQUENTIAL NUMBERING (M1-YYYYMMDD-0001)
+    // SAVE INVOICE DIRECTLY TO LOCAL PC SERVER DATABASE
     async function executeCheckout(action) {
       if (isSaving) return;
       if (cart.length === 0) { alert('Cart is empty!'); return; }
@@ -1436,7 +1401,8 @@
 
       setCheckoutButtonsDisabled(true);
 
-      const cfg = getCloudConfig();
+      const base = getApiBase();
+      const cfg = getServerConfig();
       const now = new Date();
       const invDate = now.toISOString().slice(0, 10);
       const invTime = now.toTimeString().slice(0, 8);
@@ -1453,8 +1419,7 @@
       const balDeltaVal = (activeParty && isCredit) ? (isReturn ? -netTotal : netTotal) : 0;
       const netBalVal = Number((prevBalVal + balDeltaVal).toFixed(2));
 
-      const uniqueId = Date.now();
-      const invoiceNo = await generateSequentialInvoiceNo(cfg.terminalId, invDate);
+      const fallbackInvNo = generateLocalSequentialInvoiceNo(cfg.terminalId, invDate);
       const zatcaQr = generateZatcaQrBase64(
         storeSettings.company_name_en || 'RETAIL STORE',
         storeSettings.vat_number || '300000000000003',
@@ -1463,9 +1428,25 @@
         vatAmt
       );
 
-      const invRecord = {
-        id: uniqueId,
-        invoice_no: invoiceNo,
+      const itemsRecords = cart.map((it) => {
+        const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
+        const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
+        return {
+          product_id: it.product_id,
+          barcode: it.barcode,
+          name_en: it.name_en,
+          name_ar: it.name_ar,
+          unit: it.unit,
+          cost_price: it.cost_price,
+          selling_price: it.selling_price,
+          quantity: it.quantity,
+          vat_amount: lineVat,
+          line_total: lineTot
+        };
+      });
+
+      const payload = {
+        invoice_no: fallbackInvNo,
         terminal_id: cfg.terminalId,
         invoice_date: invDate,
         invoice_time: invTime,
@@ -1483,90 +1464,60 @@
         paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
         zatca_qr: zatcaQr,
         source_device: 'MOBILE',
-        is_synced: 0
+        items: itemsRecords
       };
-
-      const fullPrintInvData = {
-        ...invRecord,
-        customer_cr: activeParty ? activeParty.cr_number : null,
-        customer_address: activeParty ? (activeParty.short_address || activeParty.city_en || '') : null,
-        prev_balance: prevBalVal,
-        net_balance: netBalVal,
-        party: activeParty
-      };
-
-      const itemsRecords = cart.map((it, i) => {
-        const lineTot = Number((it.quantity * it.selling_price).toFixed(2));
-        const lineVat = Number((lineTot - (lineTot / 1.15)).toFixed(2));
-        return {
-          id: uniqueId + i + 1,
-          invoice_id: uniqueId,
-          product_id: it.product_id,
-          barcode: it.barcode,
-          name_en: it.name_en,
-          name_ar: it.name_ar,
-          unit: it.unit,
-          cost_price: it.cost_price,
-          selling_price: it.selling_price,
-          quantity: it.quantity,
-          vat_amount: lineVat,
-          line_total: lineTot,
-          source_device: 'MOBILE',
-          is_synced: 0
-        };
-      });
 
       try {
-        const { error: invErr } = await sbClient.from('invoices').insert(invRecord);
-        if (invErr) throw invErr;
+        const res = await fetch(`${base}/api/invoices`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || 'Server failed to save invoice');
 
-        const { error: itemErr } = await sbClient.from('invoice_items').insert(itemsRecords);
-        if (itemErr) throw itemErr;
+        const savedInv = json.data || {};
+        const savedId = savedInv.id || json.id || Date.now();
+        const finalInvNo = savedInv.invoice_no || json.invoice_no || fallbackInvNo;
+        const finalZatcaQr = savedInv.zatca_qr || json.zatca_qr || zatcaQr;
 
-        for (const it of cart) {
-          const prod = productsList.find(p => p.id === it.product_id);
-          if (prod) {
-            const delta = isReturn ? it.quantity : -it.quantity;
-            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + delta).toFixed(2));
-            await sbClient.from('products').update({ stock_quantity: newQty, is_synced: 0 }).eq('id', it.product_id);
-          }
-        }
-
-        if (activeParty && isCredit) {
-          const balDelta = isReturn ? -netTotal : netTotal;
-          const newBal = Number(((parseFloat(activeParty.current_balance) || 0) + balDelta).toFixed(2));
-          await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
-          await sbClient.from('ledger').insert({
-            id: uniqueId + 50,
-            party_id: activeParty.id,
-            transaction_date: invDate,
-            type: isReturn ? 'CREDIT_NOTE' : 'INVOICE',
-            reference_no: invoiceNo,
-            debit: isReturn ? 0 : Number(netTotal.toFixed(2)),
-            credit: isReturn ? Number(netTotal.toFixed(2)) : 0,
-            balance_after: newBal,
-            notes: `Mobile POS (${invoiceNo})`,
-            source_device: 'MOBILE',
-            is_synced: 0
-          });
-        }
+        const fullPrintInvData = {
+          ...payload,
+          ...savedInv,
+          id: savedId,
+          invoice_no: finalInvNo,
+          zatca_qr: finalZatcaQr,
+          customer_cr: activeParty ? activeParty.cr_number : null,
+          customer_address: activeParty ? (activeParty.short_address || activeParty.city_en || '') : null,
+          prev_balance: prevBalVal,
+          net_balance: netBalVal,
+          party: activeParty,
+          items: itemsRecords
+        };
 
         if (action === 'thermal') {
-          await printMobileThermalInvoice(uniqueId, { ...fullPrintInvData, items: itemsRecords }, cfg);
-        } else if (action === 'a4') {
           try {
-            await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
+            await fetch(`${base}/api/print/network-ticket`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ invoiceId: uniqueId, template: 'a4' })
+              body: JSON.stringify({ invoiceId: savedId, template: '80mm' })
             });
           } catch (e) {}
-          await printMobileA4Invoice(uniqueId, { ...fullPrintInvData, items: itemsRecords }, cfg);
+          await printMobileThermalInvoice(savedId, fullPrintInvData, cfg);
+        } else if (action === 'a4') {
+          try {
+            await fetch(`${base}/api/print/network-ticket`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ invoiceId: savedId, template: 'a4' })
+            });
+          } catch (e) {}
+          await printMobileA4Invoice(savedId, fullPrintInvData, cfg);
         } else if (action === 'whatsapp') {
           const phone = activeParty && activeParty.phone ? activeParty.phone : '';
-          await shareInvoiceAsPdf(uniqueId, { ...fullPrintInvData, items: itemsRecords }, phone, true);
+          await shareInvoiceAsPdf(savedId, fullPrintInvData, phone, true);
         } else {
-          alert(`✅ ബിൽ വിജയകരമായി സേവ് ചെയ്തു! [${invoiceNo}]`);
+          alert(`✅ ബിൽ PC സെർവറിൽ വിജയകരമായി സേവ് ചെയ്തു! [${finalInvNo}]`);
         }
 
         clearCart();
@@ -1575,7 +1526,7 @@
         document.getElementById('partyQuickAction').style.display = 'none';
         await loadInitialData();
       } catch (err) {
-        alert('Cloud Save Error: ' + err.message);
+        alert('PC Server Save Error: ' + err.message);
       } finally {
         setCheckoutButtonsDisabled(false);
       }
@@ -1592,7 +1543,7 @@
       }
 
       isSaving = true;
-      const uniqueId = Date.now();
+      const base = getApiBase();
       const purDate = new Date().toISOString().slice(0, 10);
       const isReturnPur = (subMode === 'return') ? 1 : 0;
       const baseExcl = cart.reduce((sum, it) => sum + (it.quantity * it.cost_price), 0);
@@ -1600,62 +1551,53 @@
       const netTotal = baseExcl + vatAmt;
       const isCredit = (selectedPayMethod === 'CREDIT');
 
+      const purItems = cart.map(it => {
+        const lineBase = Number((it.quantity * it.cost_price).toFixed(2));
+        const lineVat = Number((lineBase * 0.15).toFixed(2));
+        const lineTot = Number((lineBase + lineVat).toFixed(2));
+        return {
+          product_id: it.product_id,
+          barcode: it.barcode,
+          name_en: it.name_en,
+          quantity: it.quantity,
+          unit_cost: it.cost_price,
+          cost_price: it.cost_price,
+          selling_price: it.retail_selling_price,
+          vat_rate: 15.0,
+          vat_amount: lineVat,
+          total_line_amount: lineTot,
+          line_total: lineTot
+        };
+      });
+
+      const payload = {
+        bill_number: suppBill,
+        supplier_inv_no: suppBill,
+        is_return: isReturnPur,
+        purchase_date: purDate,
+        vendor_id: activeParty ? activeParty.id : 147,
+        party_id: activeParty ? activeParty.id : 147,
+        vendor_name: activeParty ? activeParty.name_en : 'LOCAL CASH VENDOR',
+        subtotal: Number(baseExcl.toFixed(2)),
+        vat_amount: Number(vatAmt.toFixed(2)),
+        total_amount: Number(netTotal.toFixed(2)),
+        payment_method: selectedPayMethod,
+        paid_cash: isCredit ? 0 : Number(netTotal.toFixed(2)),
+        paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
+        source_device: 'MOBILE',
+        items: purItems
+      };
+
       try {
-        const { error: pErr } = await sbClient.from('purchases').insert({
-          id: uniqueId,
-          purchase_no: `${isReturnPur ? 'PRET' : 'PUR'}-M-${String(uniqueId).slice(-5)}`,
-          bill_number: suppBill,
-          supplier_inv_no: suppBill,
-          is_return: isReturnPur,
-          purchase_date: purDate,
-          vendor_id: activeParty ? activeParty.id : 147,
-          party_id: activeParty ? activeParty.id : 147,
-          vendor_name: activeParty ? activeParty.name_en : 'LOCAL CASH VENDOR',
-          subtotal: Number(baseExcl.toFixed(2)),
-          vat_amount: Number(vatAmt.toFixed(2)),
-          total_amount: Number(netTotal.toFixed(2)),
-          payment_method: selectedPayMethod,
-          paid_cash: isCredit ? 0 : Number(netTotal.toFixed(2)),
-          paid_credit: isCredit ? Number(netTotal.toFixed(2)) : 0,
-          source_device: 'MOBILE',
-          is_synced: 0
+        const res = await fetch(`${base}/api/purchases`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-        if (pErr) throw pErr;
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || 'Purchase save failed');
 
-        for (let i = 0; i < cart.length; i++) {
-          const it = cart[i];
-          const lineBase = Number((it.quantity * it.cost_price).toFixed(2));
-          const lineVat = Number((lineBase * 0.15).toFixed(2));
-          const lineTot = Number((lineBase + lineVat).toFixed(2));
-          await sbClient.from('purchase_items').insert({
-            id: uniqueId + i + 1,
-            purchase_id: uniqueId,
-            product_id: it.product_id,
-            barcode: it.barcode,
-            name_en: it.name_en,
-            quantity: it.quantity,
-            unit_cost: it.cost_price,
-            cost_price: it.cost_price,
-            selling_price: it.retail_selling_price,
-            vat_rate: 15.0,
-            vat_amount: lineVat,
-            total_line_amount: lineTot,
-            line_total: lineTot
-          });
-          const prod = productsList.find(p => p.id === it.product_id);
-          if (prod) {
-            const delta = isReturnPur ? -it.quantity : it.quantity;
-            const newQty = Number(((parseFloat(prod.stock_quantity) || 0) + delta).toFixed(2));
-            const updObj = { stock_quantity: newQty, is_synced: 0 };
-            if (!isReturnPur) {
-              updObj.cost_price = it.cost_price;
-              if (it.retail_selling_price > 0) updObj.selling_price = it.retail_selling_price;
-            }
-            await sbClient.from('products').update(updObj).eq('id', it.product_id);
-          }
-        }
-
-        alert(`🎉 Purchase Saved to Cloud! Bill: ${suppBill}`);
+        alert(`🎉 Purchase Saved to PC Server! Bill: ${suppBill}`);
         clearCart();
         document.getElementById('inputSuppBillNo').value = '';
         await loadInitialData();
@@ -1690,22 +1632,23 @@
       const newBal = Number((oldBal - amt).toFixed(2));
 
       try {
-        await sbClient.from('parties').update({ current_balance: newBal, is_synced: 0 }).eq('id', activeParty.id);
-        await sbClient.from('ledger').insert({
-          id: Date.now(),
-          party_id: activeParty.id,
-          transaction_date: new Date().toISOString().slice(0, 10),
-          type: voucherType,
-          reference_no: `VCH-M-${String(Date.now()).slice(-5)}`,
-          debit: voucherType === 'PAYMENT' ? amt : 0,
-          credit: voucherType === 'RECEIPT' ? amt : 0,
-          balance_after: newBal,
-          notes: `Mobile ${voucherType} (${mode})`,
-          source_device: 'MOBILE',
-          is_synced: 0
+        const res = await fetch(`${getApiBase()}/api/vouchers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            party_id: activeParty.id,
+            transaction_date: new Date().toISOString().slice(0, 10),
+            type: voucherType,
+            amount: amt,
+            payment_method: mode,
+            notes: `Mobile ${voucherType} (${mode})`,
+            source_device: 'MOBILE'
+          })
         });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || 'Voucher save failed');
 
-        alert(`✅ വൗച്ചർ ക്ലൗഡിൽ സംരക്ഷിച്ചു! പുതിയ ബാലൻസ്: ${newBal.toFixed(2)} SAR`);
+        alert(`✅ വൗച്ചർ PC സെർവറിൽ സംരക്ഷിച്ചു! പുതിയ ബാലൻസ്: ${newBal.toFixed(2)} SAR`);
         closePaymentVoucherModal();
         await loadInitialData();
         document.getElementById('partySearchInput').value = '';
@@ -1723,13 +1666,22 @@
       const newSell = parseFloat(document.getElementById('stkSellPrice').value);
       if (isNaN(count) || count < 0) { alert('ദയവായി സാധുവായ എണ്ണം നൽകുക.'); return; }
 
-      const updateFields = { stock_quantity: count, is_synced: 0 };
+      const updateFields = {
+        ...stockTargetItem,
+        stock_quantity: count
+      };
       if (!isNaN(newCost) && newCost >= 0) updateFields.cost_price = newCost;
       if (!isNaN(newSell) && newSell >= 0) updateFields.selling_price = newSell;
 
       try {
-        const { error } = await sbClient.from('products').update(updateFields).eq('id', stockTargetItem.id);
-        if (error) throw error;
+        const res = await fetch(`${getApiBase()}/api/products/${stockTargetItem.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updateFields)
+        });
+        const json = await res.json();
+        if (!res.ok || json.success === false) throw new Error(json.message || 'Stock update failed');
+
         alert(`✅ അപ്‌ഡേറ്റ് ചെയ്തു: ${stockTargetItem.name_en} (Stock: ${count}, Sell: ${(newSell || 0).toFixed(2)} SAR)`);
         stockTargetItem = null;
         document.getElementById('stkItemName').innerText = 'Scan or search an item above';
@@ -1747,16 +1699,14 @@
       const modal = document.getElementById('recentBillsModal');
       const listEl = document.getElementById('recentBillsList');
       modal.style.display = 'flex';
-      listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Fetching recent bills...</div>';
+      listEl.innerHTML = '<div style="text-align:center; color:#94a3b8; padding:20px;">Fetching recent bills from PC...</div>';
 
       try {
-        const { data, error } = await sbClient
-          .from('invoices')
-          .select('*')
-          .order('id', { ascending: false })
-          .limit(20);
+        const res = await fetch(`${getApiBase()}/api/invoices`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const data = (Array.isArray(json) ? json : (json.data || [])).slice(0, 25);
 
-        if (error) throw error;
         if (data && data.length > 0) {
           listEl.innerHTML = '';
           data.forEach(inv => {
@@ -1765,7 +1715,7 @@
             div.innerHTML = `
               <div class="bill-info">
                 <b>${inv.invoice_no}</b>
-                <small>${inv.invoice_date} ${inv.invoice_time || ''} | ${inv.customer_name || 'Walk-in'}</small>
+                <small>${inv.invoice_date} ${inv.invoice_time || ''} | ${inv.customer_name || 'عميل نقدي'}</small>
                 <span style="font-weight:900; color:#38bdf8; font-size:13px;">${Number(inv.total_amount || 0).toFixed(2)} SAR</span>
                 <span style="font-size:10.5px; color:#a78bfa; margin-left:6px;">[${inv.payment_method}]</span>
               </div>
@@ -1789,29 +1739,37 @@
     }
 
     async function reprintBill(id) {
-      const cfg = getCloudConfig();
-      const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
-      const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
-      if (inv) {
-        await printMobileThermalInvoice(id, { ...inv, items: items || [] }, cfg);
+      const cfg = getServerConfig();
+      const base = getApiBase();
+      try {
+        await fetch(`${base}/api/print/network-ticket`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invoiceId: id, template: '80mm' })
+        });
+      } catch (e) {}
+
+      try {
+        const res = await fetch(`${base}/api/invoices/${id}`);
+        const json = await res.json();
+        const inv = json.data || json;
+        if (inv) {
+          await printMobileThermalInvoice(id, inv, cfg);
+        }
+      } catch (e) {
+        alert('Error fetching bill: ' + e.message);
       }
     }
 
-    async function fetchDatabaseZatcaQr(invoiceId, fallbackQr, cfg) {
+    async function fetchDatabaseZatcaQr(invoiceId, fallbackQr) {
       let qrVal = fallbackQr || '';
-      try {
-        if (sbClient && invoiceId) {
-          const { data } = await sbClient.from('invoices').select('zatca_qr').eq('id', invoiceId).maybeSingle();
-          if (data && data.zatca_qr) qrVal = data.zatca_qr;
-        }
-      } catch (e) {}
-
       if (!qrVal || qrVal.length < 20) {
         try {
-          const res = await fetch(`http://${cfg.ip}:${cfg.port}/api/invoices/${invoiceId}`);
+          const res = await fetch(`${getApiBase()}/api/invoices/${invoiceId}`);
           if (res.ok) {
             const j = await res.json();
-            if (j && j.data && j.data.zatca_qr) qrVal = j.data.zatca_qr;
+            const d = j.data || j;
+            if (d && d.zatca_qr) qrVal = d.zatca_qr;
           }
         } catch (e) {}
       }
@@ -1854,7 +1812,7 @@
 
     // 80MM THERMAL RECEIPT (Arabic Store Name on Top + Full Arabic Labels + Bilingual Item Name + Guaranteed QR)
     async function printMobileThermalInvoice(invoiceId, inv, cfg) {
-      const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
+      const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr);
       const qrImgSrc = await createQrDataUrl(qrData, 185);
 
       const store = storeSettings || {};
@@ -2148,14 +2106,6 @@
 </body>
 </html>`);
         printWin.document.close();
-      } else {
-        try {
-          await fetch(`http://${cfg.ip}:${cfg.port}/api/print/network-ticket`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ invoiceId, template: '80mm' })
-          });
-        } catch (e) {}
       }
       alert(`✅ ബിൽ സേവ് ആയി & 80mm പ്രിന്റിനായി തയ്യാറാക്കി! [${inv.invoice_no}]`);
     }
@@ -2274,7 +2224,7 @@
     // DIRECT A4 PRINT (Full Arabic)
     async function printMobileA4Invoice(invoiceId, inv, cfg) {
       try {
-        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
+        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr);
         await populateA4InvoiceStage(inv, qrData);
         const a4HtmlContent = document.getElementById('hiddenReceiptCard').innerHTML;
 
@@ -2355,8 +2305,7 @@
     // WHATSAPP A4 PDF SHARE (Full Arabic + Properly Fitted to A4 Page without Cutting)
     async function shareInvoiceAsPdf(invoiceId, inv, customPhone = '', openWhatsApp = true) {
       try {
-        const cfg = getCloudConfig();
-        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr, cfg);
+        const qrData = await fetchDatabaseZatcaQr(invoiceId, inv.zatca_qr);
         const store = storeSettings || {};
         const storeAr = store.company_name_ar || 'المتجر';
         const totalAmt = Number(inv.total_amount || 0);
@@ -2427,18 +2376,22 @@
     }
 
     async function shareRecentBillImage(id) {
-      const { data: inv } = await sbClient.from('invoices').select('*').eq('id', id).single();
-      const { data: items } = await sbClient.from('invoice_items').select('*').eq('invoice_id', id);
-      if (inv) {
-        await shareInvoiceAsPdf(id, { ...inv, items: items || [] }, inv.customer_phone || '', true);
+      try {
+        const res = await fetch(`${getApiBase()}/api/invoices/${id}`);
+        const json = await res.json();
+        const inv = json.data || json;
+        if (inv) {
+          await shareInvoiceAsPdf(id, inv, inv.customer_phone || '', true);
+        }
+      } catch (e) {
+        showScanSuccessToast('Error: ' + e.message, true);
       }
     }
 
     function openServerConfigModal() {
-      const cfg = getCloudConfig();
-      document.getElementById('cfgSbUrl').value = cfg.sbUrl;
-      document.getElementById('cfgSbKey').value = cfg.sbKey;
+      const cfg = getServerConfig();
       document.getElementById('cfgServerIp').value = cfg.ip;
+      document.getElementById('cfgServerPort').value = cfg.port;
       document.getElementById('cfgTerminalId').value = cfg.terminalId;
       document.getElementById('serverModal').style.display = 'flex';
     }
@@ -2448,17 +2401,14 @@
     }
 
     function saveServerConfig() {
-      const url = document.getElementById('cfgSbUrl').value.trim();
-      const key = document.getElementById('cfgSbKey').value.trim();
       const ip = document.getElementById('cfgServerIp').value.trim();
+      const port = document.getElementById('cfgServerPort').value.trim() || '6060';
       const term = document.getElementById('cfgTerminalId').value.trim() || 'M1';
 
-      if (url) localStorage.setItem('sampos_sb_url', url);
-      if (key) localStorage.setItem('sampos_sb_key', key);
       if (ip) localStorage.setItem('pos_mobile_server_ip', ip);
+      localStorage.setItem('pos_mobile_server_port', port);
       localStorage.setItem('pos_mobile_terminal_id', term);
 
-      initSupabase();
       closeServerConfigModal();
       loadInitialData(true);
     }
